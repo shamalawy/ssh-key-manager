@@ -1,10 +1,11 @@
-import { ChangeDetectionStrategy, Component, inject, signal, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal, OnInit, computed } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 
 import { Api } from '../../core/api';
+import { Auth } from '../../core/auth';
 import { Alerts } from '../../shared/alerts';
-import type { AuditEvent, Dashboard as Stats, VaultStatus } from '../../core/models';
+import type { AuditEvent, Assignment, Dashboard as Stats, VaultStatus } from '../../core/models';
 
 @Component({
   selector: 'skm-overview',
@@ -27,6 +28,11 @@ import type { AuditEvent, Dashboard as Stats, VaultStatus } from '../../core/mod
     .stat.attention .value { color: var(--warn); }
     .stat.bad .value { color: var(--danger); }
     .feed td { font-size: 0.87rem; }
+    .checklist-item { display: flex; align-items: center; gap: 0.6rem; padding: 0.5rem 0; font-size: 0.9rem; }
+    .checklist-item .check { flex-shrink: 0; width: 1.2rem; height: 1.2rem; display: flex; align-items: center; justify-content: center; }
+    .checklist-item .check.done { color: var(--ok); }
+    .checklist-item a { color: var(--accent); text-decoration: none; }
+    .checklist-item a:hover { text-decoration: underline; }
   `],
   template: `
     <h1>Overview</h1>
@@ -44,6 +50,71 @@ import type { AuditEvent, Dashboard as Stats, VaultStatus } from '../../core/mod
     }
 
     @if (stats(); as s) {
+      @if (showChecklist()) {
+        <div class="card" style="margin-bottom: 1.4rem;">
+          <div class="card-header row">
+            <div>
+              <h2 style="margin: 0;">Get started</h2>
+            </div>
+            <span class="spacer"></span>
+            <span class="small faint" style="margin-right: 1rem;">{{ checkedSteps() }}/5 done</span>
+            <button class="ghost sm" type="button" (click)="hideChecklist()" aria-label="Hide checklist">Hide</button>
+          </div>
+          <div class="card-body" style="padding: 1rem 1.1rem;">
+            <div class="checklist-item">
+              <div class="check" [class.done]="step1Done()">{{ step1Done() ? '✓' : '○' }}</div>
+              <span>
+                @if (step1Done()) {
+                  Enrol a second factor
+                } @else {
+                  <a routerLink="/settings/account">Enrol a second factor</a>
+                }
+              </span>
+            </div>
+            <div class="checklist-item">
+              <div class="check" [class.done]="step2Done()">{{ step2Done() ? '✓' : '○' }}</div>
+              <span>
+                @if (step2Done()) {
+                  Add a machine
+                } @else {
+                  <a routerLink="/machines">Add a machine</a>
+                }
+              </span>
+            </div>
+            <div class="checklist-item">
+              <div class="check" [class.done]="step3Done()">{{ step3Done() ? '✓' : '○' }}</div>
+              <span>
+                @if (step3Done()) {
+                  Generate or import a key
+                } @else {
+                  <a routerLink="/keys">Generate or import a key</a>
+                }
+              </span>
+            </div>
+            <div class="checklist-item">
+              <div class="check" [class.done]="step4Done()">{{ step4Done() ? '✓' : '○' }}</div>
+              <span>
+                @if (step4Done()) {
+                  Install a key on a login
+                } @else {
+                  <a routerLink="/install">Install a key on a login</a>
+                }
+              </span>
+            </div>
+            <div class="checklist-item">
+              <div class="check" [class.done]="step5Done()">{{ step5Done() ? '✓' : '○' }}</div>
+              <span>
+                @if (step5Done()) {
+                  Take a backup
+                } @else {
+                  <a routerLink="/settings/backups">Take a backup</a>
+                }
+              </span>
+            </div>
+          </div>
+        </div>
+      }
+
       <div class="grid cols-3" style="margin-bottom: 1.4rem;">
         <a class="stat" routerLink="/keys">
           <div class="value">{{ s.active_keys }}</div>
@@ -57,7 +128,7 @@ import type { AuditEvent, Dashboard as Stats, VaultStatus } from '../../core/mod
           <div class="value">{{ s.expiring_soon }}</div>
           <div class="label">Expiring within 30 days</div>
         </a>
-        <a class="stat" [class.attention]="s.drifted_assignments > 0" routerLink="/install">
+        <a class="stat" [class.attention]="s.drifted_assignments > 0" routerLink="/machines/health">
           <div class="value">{{ s.drifted_assignments }}</div>
           <div class="label">Installs out of sync</div>
         </a>
@@ -149,13 +220,35 @@ import type { AuditEvent, Dashboard as Stats, VaultStatus } from '../../core/mod
 })
 export class OverviewPage implements OnInit {
   private readonly api = inject(Api);
+  private readonly auth = inject(Auth);
 
   protected readonly stats = signal<Stats | null>(null);
   protected readonly vault = signal<VaultStatus | null>(null);
   protected readonly recent = signal<AuditEvent[]>([]);
   protected readonly error = signal<string | null>(null);
+  protected readonly assignments = signal<Assignment[]>([]);
+  protected readonly hideChecklistFlag = signal(false);
+
+  protected readonly step1Done = computed(() => this.auth.totpEnrolled());
+  protected readonly step2Done = computed(() => (this.stats()?.targets ?? 0) > 0);
+  protected readonly step3Done = computed(() => (this.stats()?.active_keys ?? 0) > 0);
+  protected readonly step4Done = computed(() => this.assignments().length > 0);
+  protected readonly step5Done = computed(() => !!this.stats()?.last_backup_at);
+
+  protected readonly checkedSteps = computed(() => {
+    const count = [this.step1Done(), this.step2Done(), this.step3Done(), this.step4Done(), this.step5Done()].filter(Boolean).length;
+    return count;
+  });
+
+  protected readonly showChecklist = computed(() => {
+    const allDone = this.checkedSteps() === 5;
+    const hidden = this.hideChecklistFlag();
+    return !allDone && !hidden;
+  });
 
   ngOnInit(): void {
+    this.loadHideChecklistFlag();
+
     this.api.dashboard().subscribe({
       next: (s) => this.stats.set(s),
       error: (err: Error) => this.error.set(err.message),
@@ -167,5 +260,27 @@ export class OverviewPage implements OnInit {
       next: (r) => this.recent.set(r.items),
       error: (err: Error) => this.error.set(err.message),
     });
+    this.api.listAssignments().subscribe({
+      next: (r) => this.assignments.set(r.items),
+      error: (err: Error) => this.error.set(err.message),
+    });
+  }
+
+  protected hideChecklist(): void {
+    try {
+      localStorage.setItem('skm.overview.hideChecklist', '1');
+    } catch {
+      // Silently ignore localStorage errors
+    }
+    this.hideChecklistFlag.set(true);
+  }
+
+  private loadHideChecklistFlag(): void {
+    try {
+      const hidden = localStorage.getItem('skm.overview.hideChecklist');
+      this.hideChecklistFlag.set(hidden === '1');
+    } catch {
+      // Silently ignore localStorage errors
+    }
   }
 }

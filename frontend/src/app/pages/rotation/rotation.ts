@@ -6,13 +6,49 @@ import { Api } from '../../core/api';
 import { Live } from '../../core/live';
 import { Alerts } from '../../shared/alerts';
 import { Confirm } from '../../shared/confirm';
-import type { ManagedKey, Rotation, RotationPolicy, RotationTarget } from '../../core/models';
+import type { Consumer, ManagedKey, Rotation, RotationPolicy, RotationState, RotationTarget } from '../../core/models';
 
 /** States in which a rotation is still doing something. */
 const IN_FLIGHT = new Set([
   'planned', 'awaiting_approval', 'staging', 'staged',
   'verifying', 'verified', 'promoting', 'soaking', 'retiring',
 ]);
+
+/** Phase information for a rotation state. */
+interface Phase {
+  label: string;
+  step: number;
+  tone: 'info' | 'ok' | 'warn' | 'danger' | 'neutral';
+}
+
+/** Maps rotation states to user-facing phases. */
+function phaseOf(state: RotationState): Phase {
+  switch (state) {
+    case 'planned':
+      return { label: 'Planned', step: 0, tone: 'info' };
+    case 'awaiting_approval':
+      return { label: 'Waiting for approval', step: 0, tone: 'warn' };
+    case 'staging':
+    case 'staged':
+      return { label: 'Staging', step: 1, tone: 'info' };
+    case 'verifying':
+    case 'verified':
+    case 'promoting':
+      return { label: 'Verifying', step: 2, tone: 'info' };
+    case 'soaking':
+      return { label: 'Soaking', step: 3, tone: 'info' };
+    case 'retiring':
+      return { label: 'Retiring', step: 4, tone: 'info' };
+    case 'completed':
+      return { label: 'Done', step: 5, tone: 'ok' };
+    case 'failed':
+      return { label: 'Failed', step: -1, tone: 'danger' };
+    case 'aborted':
+      return { label: 'Aborted', step: -1, tone: 'neutral' };
+    case 'rolled_back':
+      return { label: 'Rolled back', step: -1, tone: 'warn' };
+  }
+}
 
 @Component({
   selector: 'skm-rotation',
@@ -25,6 +61,17 @@ const IN_FLIGHT = new Set([
     .state.done { color: var(--ok); border-color: var(--ok); }
     .state.bad { color: var(--danger); border-color: var(--danger); }
     .state.wait { color: var(--warn); border-color: var(--warn); }
+
+    .phase { font-size: 0.75rem; padding: 0.15rem 0.5rem; border-radius: 999px;
+             border: 1px solid var(--border-soft); white-space: nowrap; display: inline-block; }
+    .phase.info { color: var(--accent); border-color: var(--accent-dim); }
+    .phase.ok { color: var(--ok); border-color: var(--ok); }
+    .phase.warn { color: var(--warn); border-color: var(--warn); }
+    .phase.danger { color: var(--danger); border-color: var(--danger); }
+    .phase.neutral { color: var(--text-muted); border-color: var(--border-soft); }
+
+    .phases { display: flex; gap: 0.5rem; align-items: center; margin: 0.6rem 0 1rem; flex-wrap: wrap; }
+    .phases span { font-size: 0.85rem; color: var(--text-muted); }
 
     .progress { display: flex; gap: 2px; margin-top: 0.35rem; }
     .progress i { height: 4px; flex: 1; background: var(--border-soft); border-radius: 2px; }
@@ -62,34 +109,53 @@ const IN_FLIGHT = new Set([
         <div class="grid cols-3">
           <label>
             Key
-            <select [(ngModel)]="selectedKeyId">
+            <select [(ngModel)]="selectedKeyId" (change)="loadAssignmentInfo()">
               <option value="">Choose a key…</option>
               @for (k of rotatableKeys(); track k.id) {
                 <option [value]="k.id">{{ k.name }} · gen {{ k.generation }} · {{ k.algorithm }}</option>
               }
             </select>
           </label>
-          <label>
-            Soak window (hours)
-            <input type="number" min="0" [(ngModel)]="soakHours" />
-          </label>
-          <label>
-            Canary (% of machines first)
-            <input type="number" min="0" max="100" [(ngModel)]="canaryPercent" />
-          </label>
-          <label>
-            Failure tolerance (%)
-            <input type="number" min="0" max="100" [(ngModel)]="failureThreshold" />
-          </label>
-          <label class="checkbox">
-            <input type="checkbox" [(ngModel)]="approvalRequired" />
-            Hold for approval before staging
-          </label>
-          <label class="checkbox">
-            <input type="checkbox" [(ngModel)]="dryRun" />
-            Dry run (plan only, change nothing)
-          </label>
         </div>
+
+        @if (selectedKeyId) {
+          <p class="small">
+            Installed on {{ assignmentCount() }} login(s) across {{ machineCount() }} machine(s)
+            @if (assignmentCount() === 0) {
+              <span class="notice warn" style="display: inline-block; margin-left: 0.5rem; padding: 0.25rem 0.5rem;">
+                This key is not installed anywhere; a rotation would only generate a new key.
+              </span>
+            }
+          </p>
+        }
+
+        <details style="margin: 1rem 0;">
+          <summary class="small" style="cursor: pointer; font-weight: 500;">
+            Advanced (soak {{ soakHours }}h, canary {{ canaryPercent }}%, tolerate {{ failureThreshold }}% failures)
+          </summary>
+          <div class="grid cols-3" style="margin-top: 1rem;">
+            <label>
+              Soak window (hours)
+              <input type="number" min="0" [(ngModel)]="soakHours" />
+            </label>
+            <label>
+              Canary (% of machines first)
+              <input type="number" min="0" max="100" [(ngModel)]="canaryPercent" />
+            </label>
+            <label>
+              Failure tolerance (%)
+              <input type="number" min="0" max="100" [(ngModel)]="failureThreshold" />
+            </label>
+            <label class="checkbox">
+              <input type="checkbox" [(ngModel)]="approvalRequired" />
+              Hold for approval before staging
+            </label>
+            <label class="checkbox">
+              <input type="checkbox" [(ngModel)]="dryRun" />
+              Dry run (plan only, change nothing)
+            </label>
+          </div>
+        </details>
 
         <div class="actions">
           <button type="button" (click)="plan()" [disabled]="!selectedKeyId || busy()">
@@ -128,7 +194,11 @@ const IN_FLIGHT = new Set([
           <tbody>
             @for (r of rotations(); track r.id) {
               <tr (click)="select(r)" style="cursor: pointer;">
-                <td><span class="state" [class]="stateClass(r.state)">{{ r.state }}</span></td>
+                <td>
+                  <span class="phase" [class]="phaseOf(r.state).tone">
+                    {{ phaseOf(r.state).label }}
+                  </span>
+                </td>
                 <td>
                   {{ keyName(r.old_key_id) }}
                   @if (r.dry_run) { <span class="small faint"> · dry run</span> }
@@ -176,14 +246,29 @@ const IN_FLIGHT = new Set([
       <div class="card" style="margin-bottom: 1.4rem;">
         <div class="card-header">
           <h2>{{ keyName(r.old_key_id) }} → generation {{ (keyById(r.new_key_id)?.generation) ?? '…' }}</h2>
-          <span class="state" [class]="stateClass(r.state)">{{ r.state }}</span>
+          <div>
+            <span class="phase" [class]="phaseOf(r.state).tone">
+              {{ phaseOf(r.state).label }}
+            </span>
+            <span class="small faint" style="margin-left: 0.75rem;">engine state: {{ r.state }}</span>
+          </div>
         </div>
         <div class="card-body">
-          <div class="machine">
-            @for (step of machine; track step) {
-              <span [class.at]="step === r.state" [class.past]="isPast(step, r.state)">{{ step }}</span>
-            }
-          </div>
+          @if (phaseOf(r.state).step >= 0) {
+            <div class="phases">
+              <span class="phase" [class.ok]="phaseOf(r.state).step > 0" [class.info]="phaseOf(r.state).step === 0">Planned</span>
+              <span>·</span>
+              <span class="phase" [class.ok]="phaseOf(r.state).step > 1" [class.info]="phaseOf(r.state).step === 1">Staging</span>
+              <span>·</span>
+              <span class="phase" [class.ok]="phaseOf(r.state).step > 2" [class.info]="phaseOf(r.state).step === 2">Verifying</span>
+              <span>·</span>
+              <span class="phase" [class.ok]="phaseOf(r.state).step > 3" [class.info]="phaseOf(r.state).step === 3">Soaking</span>
+              <span>·</span>
+              <span class="phase" [class.ok]="phaseOf(r.state).step > 4" [class.info]="phaseOf(r.state).step === 4">Retiring</span>
+              <span>·</span>
+              <span class="phase" [class.ok]="phaseOf(r.state).step === 5">Done</span>
+            </div>
+          }
 
           @if (r.error) { <div class="notice warn">{{ r.error }}</div> }
           @if (r.soak_until && r.state === 'soaking') {
@@ -192,17 +277,41 @@ const IN_FLIGHT = new Set([
             </p>
           }
 
+          <p class="small faint">
+            @if (consumers().length) {
+              Will also update {{ consumers().length }} private-key deliver{{ consumers().length === 1 ? 'y' : 'ies' }}:
+              {{ consumers().map((c) => c.name).join(', ') }}
+            } @else {
+              No private-key deliveries are registered for this key.
+            }
+          </p>
+
           @if (targets().length) {
             <table>
-              <thead><tr><th>Wave</th><th>Machine</th><th>Login</th><th>State</th><th>Detail</th></tr></thead>
+              <thead><tr><th>Machine</th><th>Login</th><th>Wave</th><th>Phase</th><th>Note</th></tr></thead>
               <tbody>
                 @for (t of targets(); track t.target_id + t.principal_id) {
                   <tr>
-                    <td class="wave-tag">{{ t.wave }}</td>
                     <td>{{ t.target_name }}</td>
                     <td class="small">{{ t.username }}</td>
-                    <td><span class="state" [class]="targetClass(t.state)">{{ t.state }}</span></td>
-                    <td class="small faint">{{ t.error || (t.retired_at ? 'old key removed' : t.verified_at ? 'new key authenticated' : '') }}</td>
+                    <td class="wave-tag">{{ t.wave }}</td>
+                    <td>
+                      <span class="phase"
+                            [class.info]="t.state === 'pending'"
+                            [class.ok]="t.state === 'verified' || t.state === 'retired'"
+                            [class.danger]="t.state === 'failed'"
+                            [class.neutral]="t.state === 'skipped'">
+                        @switch (t.state) {
+                          @case ('pending') { waiting }
+                          @case ('staged') { new key added }
+                          @case ('verified') { new key works }
+                          @case ('retired') { old key removed }
+                          @case ('failed') { failed }
+                          @case ('skipped') { skipped }
+                        }
+                      </span>
+                    </td>
+                    <td class="small faint">{{ t.error || '' }}</td>
                   </tr>
                 }
               </tbody>
@@ -307,6 +416,9 @@ export class RotationPage implements OnInit, OnDestroy {
   protected readonly busy = signal(false);
   protected readonly busyId = signal<string | null>(null);
   protected readonly policyBusyId = signal<string | null>(null);
+  protected readonly assignmentCount = signal(0);
+  protected readonly machineCount = signal(0);
+  protected readonly consumers = signal<Consumer[]>([]);
 
   protected selectedKeyId = '';
   protected soakHours = 24;
@@ -314,6 +426,30 @@ export class RotationPage implements OnInit, OnDestroy {
   protected failureThreshold = 10;
   protected approvalRequired = false;
   protected dryRun = false;
+
+  private lastLoadedKeyId = '';
+
+  protected loadAssignmentInfo(): void {
+    if (this.selectedKeyId === this.lastLoadedKeyId) return;
+    this.lastLoadedKeyId = this.selectedKeyId;
+
+    if (this.selectedKeyId) {
+      this.api.listAssignments({ key_id: this.selectedKeyId }).subscribe({
+        next: (res) => {
+          this.assignmentCount.set(res.items.length);
+          const machines = new Set(res.items.map((a) => a.target_id));
+          this.machineCount.set(machines.size);
+        },
+        error: () => {
+          this.assignmentCount.set(0);
+          this.machineCount.set(0);
+        },
+      });
+    } else {
+      this.assignmentCount.set(0);
+      this.machineCount.set(0);
+    }
+  }
 
   protected policyName = '';
   protected policyCron = '0 3 * * 0';
@@ -323,11 +459,6 @@ export class RotationPage implements OnInit, OnDestroy {
   protected policyCanary = 10;
   protected policyApproval = false;
   protected policyEnabled = true;
-
-  protected readonly machine = [
-    'planned', 'staging', 'verifying', 'verified',
-    'promoting', 'soaking', 'retiring', 'completed',
-  ];
 
   /** Keys SKM can actually rotate: it must hold the private half, and
    *  break-glass keys are excluded by design. */
@@ -376,6 +507,14 @@ export class RotationPage implements OnInit, OnDestroy {
   protected select(r: Rotation): void {
     this.selected.set(r);
     this.loadTargets(r.id);
+    if (r.old_key_id) {
+      this.api.listConsumers(r.old_key_id).subscribe({
+        next: (res) => this.consumers.set(res.items),
+        error: (err: Error) => this.error.set(err.message),
+      });
+    } else {
+      this.consumers.set([]);
+    }
   }
 
   private loadTargets(id: string): void {
@@ -405,6 +544,7 @@ export class RotationPage implements OnInit, OnDestroy {
     }).subscribe({
       next: (plan) => {
         this.busy.set(false);
+        this.consumers.set(plan.consumers ?? []);
         this.planWarnings.set(plan.warnings ?? []);
         this.notice.set(
           this.approvalRequired
@@ -413,6 +553,7 @@ export class RotationPage implements OnInit, OnDestroy {
         this.selected.set(plan.rotation);
         this.targets.set(plan.targets);
         this.selectedKeyId = '';
+        this.lastLoadedKeyId = '';
         this.soakHours = 24;
         this.canaryPercent = 10;
         this.failureThreshold = 10;
@@ -572,6 +713,10 @@ export class RotationPage implements OnInit, OnDestroy {
     });
   }
 
+  protected phaseOf(state: RotationState): Phase {
+    return phaseOf(state);
+  }
+
   protected keyById(id?: string): ManagedKey | undefined {
     return id ? this.keys().find((k) => k.id === id) : undefined;
   }
@@ -584,30 +729,12 @@ export class RotationPage implements OnInit, OnDestroy {
     return IN_FLIGHT.has(r.state);
   }
 
-  protected isPast(step: string, state: string): boolean {
-    return this.machine.indexOf(step) < this.machine.indexOf(state);
-  }
-
-  protected stateClass(state: string): string {
-    if (state === 'completed') return 'done';
-    if (['aborted', 'failed', 'rolled_back'].includes(state)) return 'bad';
-    if (state === 'awaiting_approval') return 'wait';
-    return 'running';
-  }
-
-  protected targetClass(state: string): string {
-    if (state === 'retired' || state === 'verified') return 'done';
-    if (state === 'failed') return 'bad';
-    if (state === 'pending') return '';
-    return 'running';
-  }
-
   /** bar renders per-target progress as one segment per target. */
   protected bar(r: Rotation): string[] {
     const out: string[] = [];
     for (let i = 0; i < r.targets_total; i++) {
       if (i < r.targets_failed) out.push('fail');
-      else if (i < r.targets_failed + r.targets_verified) out.push('on');
+      else if (i < r.targets_failed + r.targets_retired) out.push('on');
       else out.push('');
     }
     return out;
