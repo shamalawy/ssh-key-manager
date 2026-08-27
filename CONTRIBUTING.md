@@ -7,6 +7,12 @@
 - Security problems go through [SECURITY.md](SECURITY.md), not the issue
   tracker.
 
+## Branches
+
+- `main` is owner-only: nobody else can push to it or merge into it.
+- Branch from `dev` and open your pull request against `dev`. The owner
+  merges `dev` into `main` for a release.
+
 ## Building and testing
 
 You need Go 1.26, Node 20, and Docker.
