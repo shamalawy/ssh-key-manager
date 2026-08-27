@@ -1,0 +1,20 @@
+# Build output
+/bin/
+/coverage.out
+/coverage.html
+backend/internal/web/dist/*
+!backend/internal/web/dist/.gitkeep
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.angular/
+
+# Secrets — generated locally, never committed
+deploy/secrets/*
+!deploy/secrets/.gitignore
+
+# Editors and OS
+.DS_Store
+*.swp
+.idea/

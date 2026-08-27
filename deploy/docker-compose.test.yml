@@ -1,0 +1,58 @@
+# Integration test fleet: a database plus real SSH targets to deploy keys onto.
+#
+# `make test-integration` brings these up and points the Go tests at them, so
+# the connector and end-to-end suites run against genuine sshd rather than mocks.
+
+services:
+  skm_test_postgres:
+    image: postgres:17-alpine
+    container_name: skm_test_postgres
+    environment:
+      POSTGRES_USER: skm
+      POSTGRES_DB: skm
+      POSTGRES_PASSWORD: skm
+    ports:
+      - "127.0.0.1:55440:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U skm -d skm"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    tmpfs:
+      - /var/lib/postgresql/data   # throwaway: fast, and never persisted
+
+  skm_test_sshd_1:
+    build:
+      context: ./test
+      dockerfile: Dockerfile.sshd
+    image: skm-test-sshd:latest
+    container_name: skm_test_sshd_1
+    ports:
+      - "127.0.0.1:52201:22"
+
+  skm_test_sshd_2:
+    image: skm-test-sshd:latest
+    container_name: skm_test_sshd_2
+    depends_on:
+      - skm_test_sshd_1
+    ports:
+      - "127.0.0.1:52202:22"
+
+  skm_test_sshd_3:
+    image: skm-test-sshd:latest
+    container_name: skm_test_sshd_3
+    depends_on:
+      - skm_test_sshd_1
+    ports:
+      - "127.0.0.1:52203:22"
+
+  # The rotation suite gets its own hosts. Sharing a host between packages that
+  # run in parallel meant one package's restore wiped the other's keys — a real
+  # bug this fleet layout exists to prevent recurring.
+  skm_test_sshd_4:
+    image: skm-test-sshd:latest
+    container_name: skm_test_sshd_4
+    depends_on:
+      - skm_test_sshd_1
+    ports:
+      - "127.0.0.1:52204:22"

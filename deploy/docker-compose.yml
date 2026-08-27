@@ -1,0 +1,102 @@
+# SKM — SSH Key Manager.
+#
+# Two containers: the server (API, scheduler, and embedded web interface) and
+# PostgreSQL. Container names follow <application>_<service>.
+#
+# Before the first run:
+#   openssl rand -hex 32 > deploy/secrets/master_key
+#   openssl rand -hex 32 > deploy/secrets/db_password
+#   openssl rand -hex 16 > deploy/secrets/bootstrap_password
+
+services:
+  skm_postgres:
+    image: postgres:17-alpine
+    container_name: skm_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: skm
+      POSTGRES_DB: skm
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+      # Checksums surface silent corruption in the store holding every key.
+      POSTGRES_INITDB_ARGS: "--data-checksums"
+    secrets:
+      - db_password
+    volumes:
+      - skm_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U skm -d skm"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - skm_net
+    # Not published: only the server needs to reach the database.
+
+  skm_server:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    image: skm-server:latest
+    container_name: skm_server
+    restart: unless-stopped
+    depends_on:
+      skm_postgres:
+        condition: service_healthy
+    environment:
+      SKM_LISTEN_ADDR: ":8080"
+      SKM_DATABASE_URL_FILE: /run/secrets/database_url
+      SKM_MASTER_KEY_FILE: /run/secrets/master_key
+      SKM_BOOTSTRAP_USER: admin
+      SKM_BOOTSTRAP_PASSWORD_FILE: /run/secrets/bootstrap_password
+      SKM_LOG_LEVEL: info
+      SKM_LOG_FORMAT: json
+      SKM_MIGRATE_ON_START: "true"
+      SKM_BACKUP_DIR: /var/lib/skm/backups
+    secrets:
+      - master_key
+      - bootstrap_password
+      - database_url
+    ports:
+      # host:container. The container side is fixed at 8080 because that is
+      # what SKM_LISTEN_ADDR above binds — change one and you must change the
+      # other. Only the host side is meant to be tuned: 8080 is a busy default,
+      # so it is 8090 here. Override per-run with SKM_HTTP_PORT.
+      - "0.0.0.0:${SKM_HTTP_PORT:-8090}:8080"
+    networks:
+      - skm_net
+    # The image has no shell, so the healthcheck is the binary itself.
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/skmctl", "health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    volumes:
+      # The root filesystem is read-only, so the one directory the server
+      # genuinely writes to needs a volume of its own. Without it, backups fail
+      # at mkdir — which is a bad way to discover you have no backups.
+      - skm_backups:/var/lib/skm/backups
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    cap_drop:
+      - ALL
+
+secrets:
+  master_key:
+    file: ./secrets/master_key
+  bootstrap_password:
+    file: ./secrets/bootstrap_password
+  db_password:
+    file: ./secrets/db_password
+  database_url:
+    file: ./secrets/database_url
+
+volumes:
+  skm_backups:
+  skm_pgdata:
+
+networks:
+  skm_net:
+    driver: bridge
