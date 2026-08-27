@@ -33,7 +33,7 @@ import type { Job, JobLog } from '../../core/models';
     <skm-alerts [error]="error" />
 
     <p class="small faint">
-      Every rotation step, install, and fleet check runs as a durable job.
+      Every rotation step, deploy, and fleet check runs as a durable job.
       A job that gave up stays here rather than disappearing — that is exactly
       what you need to see when something stopped working.
     </p>

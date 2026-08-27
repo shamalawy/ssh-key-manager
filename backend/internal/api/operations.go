@@ -414,6 +414,33 @@ func (s *Server) handleDeliverConsumer(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"delivered": id})
 }
 
+// handleRebindConsumer points a client at a different key and delivers it.
+// The delivery happens first: a client is never recorded as holding a key it
+// was not actually given.
+func (s *Server) handleRebindConsumer(w http.ResponseWriter, r *http.Request) {
+	id, err := pathUUID(r, "id")
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	var req struct {
+		KeyID uuid.UUID `json:"key_id"`
+	}
+	if err := decodeJSON(r, &req); err != nil {
+		writeError(w, err)
+		return
+	}
+	if req.KeyID == uuid.Nil {
+		writeError(w, badRequest("key_id is required"))
+		return
+	}
+	if err := s.Consumers.Rebind(r.Context(), subjectFrom(r.Context()), id, req.KeyID); err != nil {
+		writeError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"delivered": id, "key_id": req.KeyID})
+}
+
 func (s *Server) handleDeleteConsumer(w http.ResponseWriter, r *http.Request) {
 	id, err := pathUUID(r, "id")
 	if err != nil {

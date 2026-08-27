@@ -47,7 +47,7 @@ import type { Assignment, ManagedKey } from '../../core/models';
 
     <p class="muted" style="margin-top: -0.4rem;">
       Every SSH key SKM looks after. Generate a new pair here, or import one you
-      already have. To put a key on a machine, use Install.
+      already have. To put a key on a server, use Deploy.
     </p>
 
     <skm-alerts [error]="error" [notice]="notice" />
@@ -100,7 +100,7 @@ import type { Assignment, ManagedKey } from '../../core/models';
                     <div class="row">
                       <button class="ghost sm" type="button" (click)="select(k)">Details</button>
                       @if (auth.can('key.write')) {
-                        <a class="ghost sm" [routerLink]="'/install'" [queryParams]="{ key: k.id }">Install</a>
+                        <a class="ghost sm" [routerLink]="'/deploy'" [queryParams]="{ key: k.id }">Deploy</a>
                       }
                       @if (auth.can('key.reveal') && k.has_private_key) {
                         <button class="ghost sm" type="button" (click)="openReveal(k)">Reveal</button>
@@ -251,19 +251,19 @@ import type { Assignment, ManagedKey } from '../../core/models';
             <div class="notice warn" style="margin-top: 1rem;">{{ k.compliance_notes }}</div>
           }
 
-          <!-- Where it is installed -->
-          <h3 style="margin-top: 1.4rem;">Installed on</h3>
+          <!-- Where it is deployed -->
+          <h3 style="margin-top: 1.4rem;">Deployed on</h3>
           @if (keyAssignments().length === 0) {
             <p class="small faint">
-              Not installed anywhere yet.
+              Not deployed anywhere yet.
             </p>
             @if (auth.can('key.write')) {
-              <a [routerLink]="'/install'" [queryParams]="{ key: k.id }">Install on a machine</a>
+              <a [routerLink]="'/deploy'" [queryParams]="{ key: k.id }">Deploy on a server</a>
             }
           } @else {
             <div class="table-wrap">
               <table>
-                <thead><tr><th>Machine</th><th>Login</th><th>On the machine?</th><th>Options</th></tr></thead>
+                <thead><tr><th>Server</th><th>Login</th><th>On the server?</th><th>Options</th></tr></thead>
                 <tbody>
                   @for (a of keyAssignments(); track a.id) {
                     <tr>
@@ -284,7 +284,7 @@ import type { Assignment, ManagedKey } from '../../core/models';
               </table>
             </div>
             @if (auth.can('key.write')) {
-              <a [routerLink]="'/install'" [queryParams]="{ key: k.id }" style="margin-top: 0.5rem; display: block;">Install on another machine</a>
+              <a [routerLink]="'/deploy'" [queryParams]="{ key: k.id }" style="margin-top: 0.5rem; display: block;">Deploy on another server</a>
             }
           }
 
@@ -359,7 +359,7 @@ export class KeysPage implements OnInit {
   protected readonly revealed = signal<string | null>(null);
   protected readonly needsStepUp = signal(false);
 
-  /** Assignments showing where keys are installed. */
+  /** Assignments showing where keys are deployed. */
   protected readonly assignments = signal<Assignment[]>([]);
 
   protected search = '';
@@ -492,7 +492,7 @@ export class KeysPage implements OnInit {
         this.importing.set(false);
         this.notice.set(
           `Imported ${k.name} (${k.algorithm}). SKM worked out the public key ` +
-          `from the private one. Use Install to put it on a machine.`);
+          `from the private one. Use Deploy to put it on a server.`);
         this.reload();
       },
       error: (err: Error) => {
@@ -502,7 +502,7 @@ export class KeysPage implements OnInit {
     });
   }
 
-  /** actualLabel says what the machine really has, in words rather than jargon. */
+  /** actualLabel says what the server really has, in words rather than jargon. */
   protected actualLabel(a: Assignment): string {
     switch (a.actual_state) {
       case 'present': return a.auth_verified_at ? 'yes, verified' : 'yes';
@@ -561,7 +561,7 @@ export class KeysPage implements OnInit {
       next: () => {
         this.busy.set(false);
         this.selected.set(null);
-        this.notice.set(`Revoked ${k.name}. It will be removed from machines on the next install.`);
+        this.notice.set(`Revoked ${k.name}. It will be removed from servers on the next deploy.`);
         this.reload();
       },
       error: (err: Error) => {
@@ -601,7 +601,7 @@ export class KeysPage implements OnInit {
   protected async remove(k: ManagedKey): Promise<void> {
     if (!(await this.confirm.ask({
       title: `Delete "${k.name}"?`,
-      message: `This shreds the private key. It cannot be reinstalled, rotated, or used to authenticate anywhere it is still installed, and there is no undo short of restoring a backup.`,
+      message: `This shreds the private key. It cannot be redeployed, rotated, or used to authenticate anywhere it is still deployed, and there is no undo short of restoring a backup.`,
       action: 'Delete',
       danger: true,
     }))) {

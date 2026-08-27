@@ -136,7 +136,7 @@ import type { ApiToken, NewToken, PermissionInfo, Role, User } from '../../core/
     @if (tab() === 'roles') {
       <p class="small faint">
         Roles are fixed sets, seeded on first boot. The split that matters is
-        operator against engineer: an operator runs rotations and installs
+        operator against engineer: an operator runs rotations and deploys
         that already exist, but cannot reveal a private key or restore a backup.
       </p>
       @for (r of roles(); track r.id) {

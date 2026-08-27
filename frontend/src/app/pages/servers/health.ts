@@ -28,7 +28,7 @@ import type { DiscoveredKey, ReconcileResult, Target } from '../../core/models';
 
     <div class="card" style="margin-bottom: 1.4rem;">
       <div class="card-header">
-        <h2>Machines</h2>
+        <h2>Servers</h2>
         <button type="button" (click)="scan()" [disabled]="busy()">
           @if (busy()) { <span class="spinner"></span> } {{ busy() ? 'Scanning…' : 'Check the fleet' }}
         </button>
@@ -52,7 +52,7 @@ import type { DiscoveredKey, ReconcileResult, Target } from '../../core/models';
                   <td class="small faint">{{ t.last_reconciled_at ? (t.last_reconciled_at | date:'MMM d, HH:mm') : '—' }}</td>
                   <td class="small">{{ reconcileLabel(t.reconcile_mode) }}</td>
                   <td>
-                    <button class="ghost sm" type="button" [disabled]="busyId() === t.id" (click)="checkMachine(t)">
+                    <button class="ghost sm" type="button" [disabled]="busyId() === t.id" (click)="checkServer(t)">
                       @if (busyId() === t.id) { <span class="spinner"></span> } Check now
                     </button>
                   </td>
@@ -62,13 +62,13 @@ import type { DiscoveredKey, ReconcileResult, Target } from '../../core/models';
           </table>
         </div>
       } @else {
-        <div class="empty">Loading machines…</div>
+        <div class="empty">Loading servers…</div>
       }
     </div>
 
     <div class="card">
       <div class="card-header">
-        <h2>Keys SKM did not install</h2>
+        <h2>Keys SKM did not deploy</h2>
       </div>
 
       <div class="filters" style="margin-bottom: 0.8rem;">
@@ -83,7 +83,7 @@ import type { DiscoveredKey, ReconcileResult, Target } from '../../core/models';
           <table>
             <thead>
               <tr>
-                <th>Fingerprint</th><th>Machine</th><th>Login</th>
+                <th>Fingerprint</th><th>Server</th><th>Login</th>
                 <th>First seen</th><th></th>
               </tr>
             </thead>
@@ -111,7 +111,7 @@ import type { DiscoveredKey, ReconcileResult, Target } from '../../core/models';
         </div>
       } @else {
         <div class="empty">
-          Nothing found. Check the fleet to read the machines' keys back.
+          Nothing found. Check the fleet to read the servers' keys back.
         </div>
       }
     </div>
@@ -311,7 +311,7 @@ export class FleetHealthPage implements OnInit, OnDestroy {
     }
   }
 
-  protected checkMachine(t: Target): void {
+  protected checkServer(t: Target): void {
     this.busyId.set(t.id);
     this.api.reconcile(t.id).subscribe({
       next: (res) => {

@@ -55,9 +55,10 @@ export class Shell {
 
   protected readonly navigation = [
     { path: '/overview', label: 'Overview', glyph: '▤' },
-    { path: '/machines', label: 'Machines', glyph: '⬢' },
+    { path: '/servers', label: 'Servers', glyph: '⬢' },
+    { path: '/clients', label: 'Clients', glyph: '⬡' },
     { path: '/keys', label: 'Keys', glyph: '⚿' },
-    { path: '/install', label: 'Install', glyph: '↗' },
+    { path: '/deploy', label: 'Deploy', glyph: '↗' },
     { path: '/rotation', label: 'Rotation', glyph: '⟳' },
     { path: '/settings', label: 'Settings', glyph: '⚒' },
   ];

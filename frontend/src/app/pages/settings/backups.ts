@@ -32,7 +32,7 @@ import type { Backup, BackupVerification } from '../../core/models';
     <div class="notice warn">
       <strong>An archive holds every private key SKM manages.</strong>
       It is encrypted under a passphrase of its own — not the server's master
-      key — so it can be restored into a fresh install. That passphrase is never
+      key — so it can be restored into a fresh deployment. That passphrase is never
       stored and cannot be recovered. Losing it means losing the archive.
     </div>
 
@@ -44,7 +44,7 @@ import type { Backup, BackupVerification } from '../../core/models';
           <label>
             Contents
             <select [(ngModel)]="kind">
-              <option value="full">Everything (keys, machines, schedules) — needs a second factor</option>
+              <option value="full">Everything (keys, servers, schedules) — needs a second factor</option>
               <option value="keys_only">Keys only</option>
               <option value="metadata">Metadata only — no private keys</option>
             </select>
@@ -137,7 +137,7 @@ import type { Backup, BackupVerification } from '../../core/models';
         <div class="card-body">
           <p class="small">
             {{ v.keys_decrypted }} of {{ v.key_count }} private keys decrypted and matched
-            their recorded fingerprints. {{ v.target_count }} machine(s) in the archive.
+            their recorded fingerprints. {{ v.target_count }} server(s) in the archive.
           </p>
           <p class="small faint">
             "The backup ran" and "the backup can be restored" are different

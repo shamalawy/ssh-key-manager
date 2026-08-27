@@ -116,8 +116,23 @@ label > span.label {
 }
 label > span.hint { display: block; margin-top: 0.25rem; font-size: 0.78rem; color: var(--text-faint); }
 
+input[type="radio"], input[type="checkbox"] { width: auto; margin: 0; flex: none; }
+
 .checkbox { display: flex; align-items: center; gap: 0.5rem; }
 .checkbox input { width: auto; }
+
+/* A set of radio "cards": the control on the left, the words beside it. */
+.choices { display: grid; gap: 0.5rem; margin-bottom: 0.9rem; }
+.choice {
+  display: flex; align-items: flex-start; gap: 0.7rem;
+  padding: 0.7rem 0.85rem; margin: 0;
+  border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--bg-input); cursor: pointer;
+}
+.choice input { margin-top: 0.2rem; }
+.choice.chosen { border-color: var(--accent); background: var(--accent-bg); }
+.choice strong { display: block; font-weight: 600; }
+.choice .blurb { font-size: 0.82rem; color: var(--text-muted); margin-top: 0.15rem; }
 
 /* ---------------------------------------------------------------- layout --- */
 

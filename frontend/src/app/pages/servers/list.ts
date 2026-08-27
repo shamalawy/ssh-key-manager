@@ -10,7 +10,7 @@ import { Modal } from '../../shared/modal';
 import type { ConnectorInfo, ConnectorSetting, Credential, DiscoveredKey, Principal, Snapshot, Target } from '../../core/models';
 
 @Component({
-  selector: 'skm-machine-list',
+  selector: 'skm-server-list',
   imports: [FormsModule, DatePipe, Alerts, Modal],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: [`
@@ -29,16 +29,6 @@ import type { ConnectorInfo, ConnectorSetting, Credential, DiscoveredKey, Princi
       white-space: pre-wrap; word-break: break-all;
       max-height: 220px; overflow-y: auto;
     }
-    .kind-picker { display: grid; gap: 0.5rem; margin-bottom: 1rem; }
-    .kind-option {
-      display: flex; gap: 0.6rem; align-items: flex-start;
-      padding: 0.7rem; border: 1px solid var(--border);
-      border-radius: var(--radius); cursor: pointer;
-    }
-    .kind-option:hover { border-color: var(--accent); }
-    .kind-option.chosen { border-color: var(--accent); background: var(--bg-input); }
-    .kind-option input { margin-top: 0.2rem; }
-    .kind-option .blurb { color: var(--text-muted); font-size: 0.8rem; margin-top: 0.15rem; }
     textarea.pem {
       font-family: var(--mono); font-size: 0.74rem; min-height: 150px;
       white-space: pre; overflow-wrap: normal; overflow-x: auto;
@@ -49,12 +39,12 @@ import type { ConnectorInfo, ConnectorSetting, Credential, DiscoveredKey, Princi
   template: `
     <div class="card-header">
       @if (auth.can('target.write')) {
-        <button class="primary" type="button" (click)="openCreate()">Add machine</button>
+        <button class="primary" type="button" (click)="openCreate()">Add server</button>
       }
     </div>
 
     <p class="intro">
-      Every machine SKM puts keys on. Add one, tell SKM how to connect, and add
+      Every server SKM puts keys on. Add one, tell SKM how to connect, and add
       the logins whose authorized_keys it should manage.
     </p>
 
@@ -64,7 +54,7 @@ import type { ConnectorInfo, ConnectorSetting, Credential, DiscoveredKey, Princi
       <input type="search" placeholder="Search name or address…"
              [(ngModel)]="search" (ngModelChange)="reload()" />
       <span class="spacer"></span>
-      <span class="muted small">{{ targets().length }} machine(s)</span>
+      <span class="muted small">{{ targets().length }} server(s)</span>
     </div>
 
     <div class="card">
@@ -72,7 +62,7 @@ import type { ConnectorInfo, ConnectorSetting, Credential, DiscoveredKey, Princi
         <div class="empty"><span class="spinner"></span> Loading…</div>
       } @else if (targets().length === 0) {
         <div class="empty">
-          No machines yet. Add a machine, tell SKM how to connect, then add the
+          No servers yet. Add a server, tell SKM how to connect, then add the
           logins whose authorized_keys it should manage.
         </div>
       } @else {
@@ -126,12 +116,12 @@ import type { ConnectorInfo, ConnectorSetting, Credential, DiscoveredKey, Princi
     <!-- Inventory export ----------------------------------------------- -->
     <div class="card" style="margin-top: 1.4rem;">
       <div class="card-header">
-        <h2>Use these machines from Ansible or Nornir</h2>
+        <h2>Use these servers from Ansible or Nornir</h2>
       </div>
       <p class="small faint" style="padding: 0 1rem;">
-        SKM can hand its list of machines straight to your automation tool, so
+        SKM can hand its list of servers straight to your automation tool, so
         you keep one list instead of two. Point the tool at the address below and
-        it picks up every machine here, with its tags as groups. Add
+        it picks up every server here, with its tags as groups. Add
         <code>?tag=prod</code> to narrow it down. You will need an API token —
         make one under Users and access.
       </p>
@@ -159,9 +149,9 @@ import type { ConnectorInfo, ConnectorSetting, Credential, DiscoveredKey, Princi
       </div>
     </div>
 
-    <!-- Add machine ----------------------------------------------------- -->
+    <!-- Add server ----------------------------------------------------- -->
     @if (creating()) {
-      <skm-modal title="Add a machine" (close)="creating.set(false)">
+      <skm-modal title="Add a server" (close)="creating.set(false)">
         @if (formError(); as message) { <div class="notice error">{{ message }}</div> }
 
           <label>
@@ -188,19 +178,19 @@ import type { ConnectorInfo, ConnectorSetting, Credential, DiscoveredKey, Princi
           </div>
 
           <span class="label">How SKM connects</span>
-          <div class="kind-picker">
-            <label class="kind-option" [class.chosen]="draft.connectionSource === 'saved'">
+          <div class="choices">
+            <label class="choice" [class.chosen]="draft.connectionSource === 'saved'">
               <input type="radio" name="connSource" value="saved" [(ngModel)]="draft.connectionSource" />
               <span>
                 <strong>Use a saved connection</strong>
                 <div class="blurb">Pick one you have already added.</div>
               </span>
             </label>
-            <label class="kind-option" [class.chosen]="draft.connectionSource === 'new'">
+            <label class="choice" [class.chosen]="draft.connectionSource === 'new'">
               <input type="radio" name="connSource" value="new" [(ngModel)]="draft.connectionSource" />
               <span>
                 <strong>New connection</strong>
-                <div class="blurb">Create it now and use it for this machine.</div>
+                <div class="blurb">Create it now and use it for this server.</div>
               </span>
             </label>
           </div>
@@ -226,15 +216,15 @@ import type { ConnectorInfo, ConnectorSetting, Credential, DiscoveredKey, Princi
             </label>
 
             <span class="label">Authentication</span>
-            <div class="kind-picker">
-              <label class="kind-option" [class.chosen]="draft.newConnAuthType === 'password'">
+            <div class="choices">
+              <label class="choice" [class.chosen]="draft.newConnAuthType === 'password'">
                 <input type="radio" name="authType" value="password" [(ngModel)]="draft.newConnAuthType" />
                 <span>
                   <strong>Password</strong>
                   <div class="blurb">A username and password.</div>
                 </span>
               </label>
-              <label class="kind-option" [class.chosen]="draft.newConnAuthType === 'key'">
+              <label class="choice" [class.chosen]="draft.newConnAuthType === 'key'">
                 <input type="radio" name="authType" value="key" [(ngModel)]="draft.newConnAuthType" />
                 <span>
                   <strong>Private key</strong>
@@ -313,7 +303,7 @@ import type { ConnectorInfo, ConnectorSetting, Credential, DiscoveredKey, Princi
     }
 
 
-    <!-- Edit machine ---------------------------------------------------- -->
+    <!-- Edit server ---------------------------------------------------- -->
     @if (editing(); as t) {
       <skm-modal [title]="'Edit ' + t.name" [wide]="true" (close)="editing.set(null)">
         @if (formError(); as message) { <div class="notice error">{{ message }}</div> }
@@ -427,7 +417,7 @@ import type { ConnectorInfo, ConnectorSetting, Credential, DiscoveredKey, Princi
       </skm-modal>
     }
 
-    <!-- Machine details ------------------------------------------------- -->
+    <!-- Server details ------------------------------------------------- -->
     @if (selected(); as t) {
       <skm-modal [title]="t.name" [wide]="true" (close)="selected.set(null)">
 
@@ -448,7 +438,7 @@ import type { ConnectorInfo, ConnectorSetting, Credential, DiscoveredKey, Princi
 
           <h3>Logins</h3>
           @if (principals().length === 0) {
-            <p class="muted small">No logins on this machine yet.</p>
+            <p class="muted small">No logins on this server yet.</p>
           } @else {
             @for (p of principals(); track p.id) {
               <div class="principal-row">
@@ -494,7 +484,7 @@ import type { ConnectorInfo, ConnectorSetting, Credential, DiscoveredKey, Princi
                   <p class="small faint" style="margin: 0 0 0.4rem;">
                     What SKM wants <code class="mono">{{ p.username }}</code>'s
                     <code>authorized_keys</code> to contain. This is the intended
-                    state, not a read of the machine.
+                    state, not a read of the server.
                   </p>
                   <pre class="keys-preview">{{ keysText() || '(loading…)' }}</pre>
                   <button class="ghost sm" type="button" (click)="copyKeys()">Copy</button>
@@ -543,9 +533,9 @@ import type { ConnectorInfo, ConnectorSetting, Credential, DiscoveredKey, Princi
             </div>
           }
 
-          <h3 style="margin-top: 1.4rem;">Keys SKM did not install</h3>
+          <h3 style="margin-top: 1.4rem;">Keys SKM did not deploy</h3>
           @if (discoveredKeys().length === 0) {
-            <p class="muted small">None — everything on this machine was put there by SKM.</p>
+            <p class="muted small">None — everything on this server was put there by SKM.</p>
           } @else {
             <div class="table-wrap">
               <table>
@@ -573,7 +563,7 @@ import type { ConnectorInfo, ConnectorSetting, Credential, DiscoveredKey, Princi
 
         <div class="row end" style="margin-top: 1.2rem;">
           @if (auth.can('target.write')) {
-            <button type="button" (click)="selected.set(null); openEdit(t)">Edit machine</button>
+            <button type="button" (click)="selected.set(null); openEdit(t)">Edit server</button>
           }
           <button type="button" (click)="selected.set(null)">Close</button>
         </div>
@@ -581,7 +571,7 @@ import type { ConnectorInfo, ConnectorSetting, Credential, DiscoveredKey, Princi
     }
   `,
 })
-export class MachineListPage implements OnInit {
+export class ServerListPage implements OnInit {
   private readonly api = inject(Api);
   protected readonly auth = inject(Auth);
   private readonly confirm = inject(Confirm);
@@ -757,7 +747,7 @@ export class MachineListPage implements OnInit {
   protected async remove(t: Target): Promise<void> {
     if (!(await this.confirm.ask({
       title: `Delete ${t.name}?`,
-      message: 'This removes SKM\'s record of the machine, along with its logins and snapshots. Keys already installed on the host are NOT removed — if you meant to withdraw access, remove the logins first.',
+      message: 'This removes SKM\'s record of the server, along with its logins and snapshots. Keys already installed on the host are NOT removed — if you meant to withdraw access, remove the logins first.',
       action: 'Delete',
       danger: true,
     }))) return;
@@ -1018,7 +1008,7 @@ export class MachineListPage implements OnInit {
 
   protected async rollback(s: Snapshot): Promise<void> {
     if (!(await this.confirm.ask({
-      title: 'Restore this machine?',
+      title: 'Restore this server?',
       message: `Restore to its state at ${new Date(s.taken_at).toLocaleString()}?`,
       action: 'Roll back',
       danger: true,

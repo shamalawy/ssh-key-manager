@@ -496,6 +496,11 @@ export class Api {
     return this.post(`/consumers/${id}/deliver`, {});
   }
 
+  /** rebindConsumer delivers a different key to a client and records it. */
+  rebindConsumer(id: string, keyId: string): Observable<{ delivered: string; key_id: string }> {
+    return this.post(`/consumers/${id}/rebind`, { key_id: keyId });
+  }
+
   deleteConsumer(id: string): Observable<unknown> {
     return this.delete(`/consumers/${id}`);
   }

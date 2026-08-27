@@ -704,6 +704,16 @@ func (s *Server) routes() []Route {
 			Permission: "key.write",
 		},
 		{
+			Method: "POST", Path: "/api/v1/consumers/{id}/rebind", Handler: s.handleRebindConsumer,
+			Tag: "Consumers", Summary: "Give a sink a different key.",
+			Detail:     "Delivers the key first and records the new binding only when delivery succeeds, so a sink is never listed as holding a key it was not given. This is how the interface deploys a private key to several clients at once.",
+			Permission: "key.write",
+			Body: []Field{
+				{Name: "key_id", Type: "uuid", Description: "The key to deliver and bind.", Required: true},
+			},
+			Return: "{delivered, key_id}",
+		},
+		{
 			Method: "DELETE", Path: "/api/v1/consumers/{id}", Handler: s.handleDeleteConsumer,
 			Tag: "Consumers", Summary: "Delete a sink.",
 			Permission: "key.write",

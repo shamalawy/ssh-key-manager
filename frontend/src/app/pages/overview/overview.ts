@@ -75,9 +75,9 @@ import type { AuditEvent, Assignment, Dashboard as Stats, VaultStatus } from '..
               <div class="check" [class.done]="step2Done()">{{ step2Done() ? '✓' : '○' }}</div>
               <span>
                 @if (step2Done()) {
-                  Add a machine
+                  Add a server
                 } @else {
-                  <a routerLink="/machines">Add a machine</a>
+                  <a routerLink="/servers">Add a server</a>
                 }
               </span>
             </div>
@@ -95,9 +95,9 @@ import type { AuditEvent, Assignment, Dashboard as Stats, VaultStatus } from '..
               <div class="check" [class.done]="step4Done()">{{ step4Done() ? '✓' : '○' }}</div>
               <span>
                 @if (step4Done()) {
-                  Install a key on a login
+                  Deploy a key to a server
                 } @else {
-                  <a routerLink="/install">Install a key on a login</a>
+                  <a routerLink="/deploy">Deploy a key to a server</a>
                 }
               </span>
             </div>
@@ -120,21 +120,21 @@ import type { AuditEvent, Assignment, Dashboard as Stats, VaultStatus } from '..
           <div class="value">{{ s.active_keys }}</div>
           <div class="label">Active keys</div>
         </a>
-        <a class="stat" routerLink="/machines">
+        <a class="stat" routerLink="/servers">
           <div class="value">{{ s.targets }}</div>
-          <div class="label">Machines</div>
+          <div class="label">Servers</div>
         </a>
         <a class="stat" [class.attention]="s.expiring_soon > 0" routerLink="/keys">
           <div class="value">{{ s.expiring_soon }}</div>
           <div class="label">Expiring within 30 days</div>
         </a>
-        <a class="stat" [class.attention]="s.drifted_assignments > 0" routerLink="/machines/health">
+        <a class="stat" [class.attention]="s.drifted_assignments > 0" routerLink="/servers/health">
           <div class="value">{{ s.drifted_assignments }}</div>
-          <div class="label">Installs out of sync</div>
+          <div class="label">Deploys out of sync</div>
         </a>
-        <a class="stat" [class.bad]="s.unreachable_targets > 0" routerLink="/machines">
+        <a class="stat" [class.bad]="s.unreachable_targets > 0" routerLink="/servers">
           <div class="value">{{ s.unreachable_targets }}</div>
-          <div class="label">Unreachable machines</div>
+          <div class="label">Unreachable servers</div>
         </a>
         <a class="stat" [class.attention]="s.non_compliant_keys > 0" routerLink="/keys">
           <div class="value">{{ s.non_compliant_keys }}</div>
@@ -151,9 +151,9 @@ import type { AuditEvent, Assignment, Dashboard as Stats, VaultStatus } from '..
           </a>
         }
         @if (s.unmanaged_keys !== undefined) {
-          <a class="stat" [class.attention]="s.unmanaged_keys > 0" routerLink="/machines/health">
+          <a class="stat" [class.attention]="s.unmanaged_keys > 0" routerLink="/servers/health">
             <div class="value">{{ s.unmanaged_keys }}</div>
-            <div class="label">Keys SKM did not install</div>
+            <div class="label">Keys SKM did not deploy</div>
           </a>
         }
         @if (s.jobs_dead !== undefined) {

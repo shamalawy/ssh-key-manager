@@ -102,7 +102,7 @@ function phaseOf(state: RotationState): Phase {
         <div class="card-header"><h2>Rotate a key</h2></div>
         <div class="card-body">
           <p class="small faint">
-            Replace a key everywhere it is installed, safely: the new key goes on
+            Replace a key everywhere it is deployed, safely: the new key goes on
             first, is proved to work, and only then is the old one removed.
           </p>
 
@@ -120,10 +120,10 @@ function phaseOf(state: RotationState): Phase {
 
         @if (selectedKeyId) {
           <p class="small">
-            Installed on {{ assignmentCount() }} login(s) across {{ machineCount() }} machine(s)
+            Deployed on {{ assignmentCount() }} login(s) across {{ machineCount() }} server(s)
             @if (assignmentCount() === 0) {
               <span class="notice warn" style="display: inline-block; margin-left: 0.5rem; padding: 0.25rem 0.5rem;">
-                This key is not installed anywhere; a rotation would only generate a new key.
+                This key is not deployed anywhere; a rotation would only generate a new key.
               </span>
             }
           </p>
@@ -139,7 +139,7 @@ function phaseOf(state: RotationState): Phase {
               <input type="number" min="0" [(ngModel)]="soakHours" />
             </label>
             <label>
-              Canary (% of machines first)
+              Canary (% of servers first)
               <input type="number" min="0" max="100" [(ngModel)]="canaryPercent" />
             </label>
             <label>
@@ -218,7 +218,7 @@ function phaseOf(state: RotationState): Phase {
                   @if (r.state === 'planned') {
                     <button class="sm" type="button" (click)="start(r, $event)"
                             [disabled]="busyId() !== null"
-                            title="Begin adding the new key to every machine">
+                            title="Begin adding the new key to every server">
                       @if (busyId() === r.id) { <span class="spinner"></span> } Start
                     </button>
                   }
@@ -279,16 +279,16 @@ function phaseOf(state: RotationState): Phase {
 
           <p class="small faint">
             @if (consumers().length) {
-              Will also update {{ consumers().length }} private-key deliver{{ consumers().length === 1 ? 'y' : 'ies' }}:
+              Will also update {{ consumers().length }} client{{ consumers().length === 1 ? '' : 's' }}:
               {{ consumers().map((c) => c.name).join(', ') }}
             } @else {
-              No private-key deliveries are registered for this key.
+              No clients are registered for this key.
             }
           </p>
 
           @if (targets().length) {
             <table>
-              <thead><tr><th>Machine</th><th>Login</th><th>Wave</th><th>Phase</th><th>Note</th></tr></thead>
+              <thead><tr><th>Server</th><th>Login</th><th>Wave</th><th>Phase</th><th>Note</th></tr></thead>
               <tbody>
                 @for (t of targets(); track t.target_id + t.principal_id) {
                   <tr>
@@ -548,8 +548,8 @@ export class RotationPage implements OnInit, OnDestroy {
         this.planWarnings.set(plan.warnings ?? []);
         this.notice.set(
           this.approvalRequired
-            ? `Planned across ${plan.targets.length} machine(s); waiting for approval.`
-            : `Rotating across ${plan.targets.length} machine(s).`);
+            ? `Planned across ${plan.targets.length} server(s); waiting for approval.`
+            : `Rotating across ${plan.targets.length} server(s).`);
         this.selected.set(plan.rotation);
         this.targets.set(plan.targets);
         this.selectedKeyId = '';
@@ -579,7 +579,7 @@ export class RotationPage implements OnInit, OnDestroy {
     ev.stopPropagation();
     if (!(await this.confirm.ask({
       title: 'Start this rotation?',
-      message: 'The new key is added alongside the old one on every machine and each is tested by logging in with it. Nothing is removed until the new key has proved it works.',
+      message: 'The new key is added alongside the old one on every server and each is tested by logging in with it. Nothing is removed until the new key has proved it works.',
       action: 'Start',
     }))) {
       return;
@@ -632,7 +632,7 @@ export class RotationPage implements OnInit, OnDestroy {
     this.api.abortRotation(r.id, reason).subscribe({
       next: () => {
         this.busyId.set(null);
-        this.notice.set('Aborted. Nothing already installed was removed — both keys remain in place.');
+        this.notice.set('Aborted. Nothing already deployed was removed — both keys remain in place.');
         this.refresh();
       },
       error: (err: Error) => {

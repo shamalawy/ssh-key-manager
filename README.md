@@ -58,7 +58,7 @@ Working and tested end to end against real PostgreSQL and real `sshd`:
 | User administration, roles, and scoped API tokens | complete |
 | Second factor with a scannable QR code and recovery codes | complete |
 | OpenAPI 3.1 document and a browsable API reference | complete |
-| Web interface: six screens | complete |
+| Web interface: seven screens | complete |
 | Ansible and Nornir integrations | complete |
 | Docker Compose deployment | complete |
 
@@ -257,16 +257,19 @@ risk and a surprise.
 
 ### The web interface
 
-Six places to be, all built on the same REST API — there is no privileged
-path the interface uses and the API does not have. The interface speaks the
-operator's language; the API keeps its own nouns (in brackets).
+Seven places to be, all built on the same REST API — there is no privileged
+path the interface uses and the API does not have. The interface uses plain
+words; the API keeps its own nouns (in brackets). The model is one sentence:
+**a key's public half is deployed to servers; its private half is deployed to
+clients** — and both are done in bulk with checkboxes.
 
 | Screen | What it is for |
 |---|---|
-| Overview | A get-started checklist, expiring keys, out-of-sync installs, unreachable machines, failed jobs |
-| Machines | Machines [targets] and their logins [principals]; saved connections [credentials]; fleet health: out-of-sync checks, "fix automatically", and keys SKM did not install [discovered keys] |
+| Overview | A get-started checklist, expiring keys, deploys out of sync, unreachable servers, failed jobs |
+| Servers | Servers [targets] and their logins [principals]; saved connections [credentials]; fleet health: out-of-sync checks, "fix automatically", and keys SKM did not deploy [discovered keys] |
+| Clients | Anything that needs the private key [consumers]: a CI secret store, a Vault path, a Kubernetes Secret, a file on a host |
 | Keys | Generate, import, reveal (gated), revoke, delete; break-glass keys |
-| Install | One flow: pick a key, tick the logins, check the diff, apply, roll back in place [assignments + deploy + rollback]; private-key deliveries [consumers] |
+| Deploy | Pick a key, then: public key → tick servers/logins, check the diff, apply, roll back in place [assignments + deploy + rollback]; private key → tick clients, deploy [consumer rebind/deliver] |
 | Rotation | Rotate a key with five visible phases (planned, staging, verifying, soaking, retiring); schedules [rotation policies] |
 | Settings | Account and second factor, users and API tokens, backups, jobs, audit trail, notifications [webhooks], API reference, vault |
 

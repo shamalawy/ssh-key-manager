@@ -53,16 +53,6 @@ const KINDS: KindInfo[] = [
   imports: [FormsModule, DatePipe, Modal, Alerts],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: [`
-    .kind-picker { display: grid; gap: 0.5rem; margin-bottom: 1rem; }
-    .kind-option {
-      display: flex; gap: 0.6rem; align-items: flex-start;
-      padding: 0.7rem; border: 1px solid var(--border);
-      border-radius: var(--radius); cursor: pointer;
-    }
-    .kind-option:hover { border-color: var(--accent); }
-    .kind-option.chosen { border-color: var(--accent); background: var(--bg-input); }
-    .kind-option input { margin-top: 0.2rem; }
-    .kind-option .blurb { color: var(--text-muted); font-size: 0.8rem; margin-top: 0.15rem; }
     textarea.pem {
       font-family: var(--mono); font-size: 0.74rem; min-height: 150px;
       white-space: pre; overflow-wrap: normal; overflow-x: auto;
@@ -77,9 +67,9 @@ const KINDS: KindInfo[] = [
     </div>
 
     <p class="intro">
-      How SKM signs in to machines. A connection is a username plus a password
-      or private key; pick it when you add a machine. Most people never need
-      this tab — the Add machine form creates one for you.
+      How SKM signs in to servers. A connection is a username plus a password
+      or private key; pick it when you add a server. Most people never need
+      this tab — the Add server form creates one for you.
     </p>
 
     <skm-alerts [error]="error" [notice]="notice" />
@@ -122,7 +112,7 @@ const KINDS: KindInfo[] = [
                       <span class="faint">not used yet</span>
                     } @else {
                       <div class="used-by">
-                        @for (t of usedBy(c); track t.id) { <span class="tag">{{ t.name }} (machine)</span> }
+                        @for (t of usedBy(c); track t.id) { <span class="tag">{{ t.name }} (server)</span> }
                       </div>
                     }
                   </td>
@@ -150,13 +140,13 @@ const KINDS: KindInfo[] = [
           <label>
             <span class="label">Name</span>
             <input [(ngModel)]="draft.name" placeholder="aws-ec2-prod" />
-            <span class="hint">Just a label so you can pick it out on a machine.</span>
+            <span class="hint">Just a label so you can pick it out on a server.</span>
           </label>
 
           <span class="label">What kind of sign-in is it?</span>
-          <div class="kind-picker">
+          <div class="choices">
             @for (k of kinds; track k.value) {
-              <label class="kind-option" [class.chosen]="draft.kind === k.value">
+              <label class="choice" [class.chosen]="draft.kind === k.value">
                 <input type="radio" name="kind" [value]="k.value" [(ngModel)]="draft.kind" />
                 <span>
                   <strong>{{ k.label }}</strong>
@@ -179,8 +169,8 @@ const KINDS: KindInfo[] = [
 
           @if (draft.kind === 'ssh_key') {
             <span class="label">Where is the private key?</span>
-            <div class="kind-picker">
-              <label class="kind-option" [class.chosen]="draft.source === 'paste'">
+            <div class="choices">
+              <label class="choice" [class.chosen]="draft.source === 'paste'">
                 <input type="radio" name="source" value="paste" [(ngModel)]="draft.source" />
                 <span>
                   <strong>Paste or upload a key file</strong>
@@ -189,7 +179,7 @@ const KINDS: KindInfo[] = [
                   </div>
                 </span>
               </label>
-              <label class="kind-option" [class.chosen]="draft.source === 'managed'" [title]="keys().length === 0 ? 'Add a key under the Keys page first' : ''">
+              <label class="choice" [class.chosen]="draft.source === 'managed'" [title]="keys().length === 0 ? 'Add a key under the Keys page first' : ''">
                 <input type="radio" name="source" value="managed" [(ngModel)]="draft.source" [disabled]="keys().length === 0" />
                 <span>
                   <strong>Use a key SKM already manages</strong>
@@ -230,7 +220,7 @@ const KINDS: KindInfo[] = [
                 </select>
                 <span class="hint">
                   SKM will sign in with this key's private half. The matching
-                  public key has to already be on the machine — on a fresh EC2
+                  public key has to already be on the server — on a fresh EC2
                   instance that means the key AWS installed at launch.
                 </span>
               </label>
@@ -361,7 +351,7 @@ export class ConnectionsPage implements OnInit {
         this.busy.set(false);
         this.creating.set(false);
         this.notice.set(
-          `Saved ${c.name}. Pick it when you add a machine.`);
+          `Saved ${c.name}. Pick it when you add a server.`);
         this.reload();
       },
       error: (err: Error) => {
@@ -380,7 +370,7 @@ export class ConnectionsPage implements OnInit {
   protected async remove(c: Credential): Promise<void> {
     const users = this.usedBy(c);
     const message = users.length
-      ? `It is in use by: ${users.map((t) => t.name).join(', ')}. SKM will refuse until those machines point somewhere else.`
+      ? `It is in use by: ${users.map((t) => t.name).join(', ')}. SKM will refuse until those servers point somewhere else.`
       : `The stored secret is destroyed. If you need it again you will have to paste it in afresh.`;
 
     if (!(await this.confirm.ask({ title: `Delete ${c.name}?`, message, action: 'Delete', danger: true }))) {

@@ -43,7 +43,7 @@ function writeToClipboard(
       <div class="card-header"><h2>Notifications</h2></div>
       <div class="card-body">
         <p class="small faint">
-          Signed notifications for key, rotation, drift, and installation events.
+          Signed notifications for key, rotation, drift, and deployment events.
           Each request carries an <code>X-SKM-Signature</code> header: an HMAC over
           <code>timestamp.body</code>, so a captured request cannot be replayed
           indefinitely. Verify it before trusting the payload.

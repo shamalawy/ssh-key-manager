@@ -4,7 +4,8 @@ import { authGuard, passwordGuard } from './core/auth';
 import { Shell } from './layout/shell';
 
 /**
- * Six places to be: Overview, Machines, Keys, Install, Rotation, Settings.
+ * Seven places to be: Overview, Servers, Clients, Keys, Deploy, Rotation, Settings.
+ * Servers get the public key; clients get the private key; Deploy does both.
  * Everything else lives as a tab inside one of those. The old one-page-per-
  * concept paths redirect so bookmarks and the CLI's printed links keep working.
  *
@@ -36,25 +37,30 @@ export const routes: Routes = [
         title: 'Overview · SKM',
       },
       {
-        path: 'machines',
-        loadComponent: () => import('./pages/machines/machines').then((m) => m.MachinesPage),
+        path: 'servers',
+        loadComponent: () => import('./pages/servers/servers').then((m) => m.ServersPage),
         children: [
           {
             path: '',
-            loadComponent: () => import('./pages/machines/list').then((m) => m.MachineListPage),
-            title: 'Machines · SKM',
+            loadComponent: () => import('./pages/servers/list').then((m) => m.ServerListPage),
+            title: 'Servers · SKM',
           },
           {
             path: 'connections',
-            loadComponent: () => import('./pages/machines/connections').then((m) => m.ConnectionsPage),
+            loadComponent: () => import('./pages/servers/connections').then((m) => m.ConnectionsPage),
             title: 'Connections · SKM',
           },
           {
             path: 'health',
-            loadComponent: () => import('./pages/machines/health').then((m) => m.FleetHealthPage),
+            loadComponent: () => import('./pages/servers/health').then((m) => m.FleetHealthPage),
             title: 'Fleet health · SKM',
           },
         ],
+      },
+      {
+        path: 'clients',
+        loadComponent: () => import('./pages/clients/clients').then((m) => m.ClientsPage),
+        title: 'Clients · SKM',
       },
       {
         path: 'keys',
@@ -62,9 +68,9 @@ export const routes: Routes = [
         title: 'Keys · SKM',
       },
       {
-        path: 'install',
-        loadComponent: () => import('./pages/install/install').then((m) => m.InstallPage),
-        title: 'Install · SKM',
+        path: 'deploy',
+        loadComponent: () => import('./pages/deploy/deploy').then((m) => m.DeployPage),
+        title: 'Deploy · SKM',
       },
       {
         path: 'rotation',
@@ -121,10 +127,13 @@ export const routes: Routes = [
 
       // Paths from before the six-item navigation.
       { path: 'dashboard', redirectTo: 'overview' },
-      { path: 'targets', redirectTo: 'machines' },
-      { path: 'credentials', redirectTo: 'machines/connections' },
-      { path: 'inventory', redirectTo: 'machines/health' },
-      { path: 'deploy', redirectTo: 'install' },
+      { path: 'targets', redirectTo: 'servers' },
+      { path: 'machines', redirectTo: 'servers' },
+      { path: 'machines/connections', redirectTo: 'servers/connections' },
+      { path: 'machines/health', redirectTo: 'servers/health' },
+      { path: 'credentials', redirectTo: 'servers/connections' },
+      { path: 'inventory', redirectTo: 'servers/health' },
+      { path: 'install', redirectTo: 'deploy' },
       { path: 'rotations', redirectTo: 'rotation' },
       { path: 'users', redirectTo: 'settings/users' },
       { path: 'backups', redirectTo: 'settings/backups' },
