@@ -9,7 +9,7 @@ import (
 )
 
 // Version is the API version reported in the OpenAPI document.
-const Version = "1.0.0"
+const Version = "1.1.0"
 
 // handleOpenAPI renders the route table as an OpenAPI 3.1 document.
 //
