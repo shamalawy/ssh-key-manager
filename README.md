@@ -96,6 +96,16 @@ make up          # builds and starts skm_server + skm_postgres
 
 If port 8090 is taken, `SKM_HTTP_PORT=8081 make up` moves it.
 
+A prebuilt image is published to GitHub Packages for every release, for
+`linux/amd64` and `linux/arm64`:
+
+```bash
+docker pull ghcr.io/shamalawy/ssh-key-manager:latest
+```
+
+`deploy/docker-compose.yml` builds from source. To run the published image
+instead, replace its `build:` block with `image: ghcr.io/shamalawy/ssh-key-manager:1.1.0`.
+
 ### Develop
 
 ```bash

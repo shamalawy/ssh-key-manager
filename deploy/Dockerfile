@@ -1,5 +1,7 @@
-# Build the Angular application.
-FROM node:20-alpine AS frontend
+# Build the Angular application. Both build stages run on the builder's own
+# architecture and cross-compile, so a multi-platform release does not run the
+# compilers under emulation.
+FROM --platform=$BUILDPLATFORM node:20-alpine AS frontend
 WORKDIR /build
 
 COPY frontend/package.json frontend/package-lock.json* ./
@@ -10,8 +12,9 @@ RUN npm run build -- --configuration production
 
 
 # Build the Go binaries with the frontend embedded.
-FROM golang:1.26-alpine AS backend
+FROM --platform=$BUILDPLATFORM golang:1.26-alpine AS backend
 WORKDIR /build
+ARG TARGETOS TARGETARCH
 
 RUN apk add --no-cache git
 
@@ -23,8 +26,8 @@ COPY backend/ ./
 COPY --from=frontend /build/dist/skm/browser/ ./internal/web/dist/
 
 # Static, stripped binaries so the final image needs no libc.
-RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/skm-server ./cmd/skm-server \
- && CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/skmctl    ./cmd/skmctl
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -ldflags="-s -w" -o /out/skm-server ./cmd/skm-server \
+ && CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -ldflags="-s -w" -o /out/skmctl    ./cmd/skmctl
 
 # The runtime image has no shell, so the one writable directory has to be
 # created here. Docker seeds a new named volume from the image's directory,
