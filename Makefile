@@ -43,6 +43,7 @@ frontend: ## Build the Angular app into the Go embed directory
 	rm -rf $(BACKEND)/internal/web/dist
 	mkdir -p $(BACKEND)/internal/web/dist
 	cp -r $(FRONTEND)/dist/skm/browser/* $(BACKEND)/internal/web/dist/
+	touch $(BACKEND)/internal/web/dist/.gitkeep
 	@echo "embedded the web interface into $(BACKEND)/internal/web/dist"
 
 # ------------------------------------------------------------------- test ---
