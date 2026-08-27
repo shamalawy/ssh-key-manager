@@ -8,14 +8,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hamalawy/ssh-key-manager/backend/internal/audit"
-	"github.com/hamalawy/ssh-key-manager/backend/internal/authz"
-	"github.com/hamalawy/ssh-key-manager/backend/internal/connectors"
-	"github.com/hamalawy/ssh-key-manager/backend/internal/events"
-	"github.com/hamalawy/ssh-key-manager/backend/internal/jobs"
-	"github.com/hamalawy/ssh-key-manager/backend/internal/service"
-	"github.com/hamalawy/ssh-key-manager/backend/internal/store"
-	"github.com/hamalawy/ssh-key-manager/backend/internal/vault"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/audit"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/authz"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/connectors"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/events"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/jobs"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/service"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/store"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/vault"
 )
 
 // Server holds everything the HTTP handlers need.

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hamalawy/ssh-key-manager/backend/internal/authz"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/authz"
 )
 
 // The point of generating documentation from the route table is that the two

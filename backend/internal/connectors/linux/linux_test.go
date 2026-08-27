@@ -9,9 +9,9 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/hamalawy/ssh-key-manager/backend/internal/connectors"
-	"github.com/hamalawy/ssh-key-manager/backend/internal/keys"
-	"github.com/hamalawy/ssh-key-manager/backend/internal/sshx"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/connectors"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/keys"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/sshx"
 )
 
 // testHost returns the address and port of the disposable sshd container,

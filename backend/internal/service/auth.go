@@ -14,12 +14,12 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
-	"github.com/hamalawy/ssh-key-manager/backend/internal/audit"
-	"github.com/hamalawy/ssh-key-manager/backend/internal/auth"
-	"github.com/hamalawy/ssh-key-manager/backend/internal/authz"
-	"github.com/hamalawy/ssh-key-manager/backend/internal/db"
-	"github.com/hamalawy/ssh-key-manager/backend/internal/qr"
-	"github.com/hamalawy/ssh-key-manager/backend/internal/store"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/audit"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/auth"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/authz"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/db"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/qr"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/store"
 )
 
 // Login failure handling. Locking is time-boxed so a password-guessing attempt

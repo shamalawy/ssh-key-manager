@@ -8,10 +8,10 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/hamalawy/ssh-key-manager/backend/internal/audit"
-	"github.com/hamalawy/ssh-key-manager/backend/internal/authz"
-	"github.com/hamalawy/ssh-key-manager/backend/internal/dbtest"
-	"github.com/hamalawy/ssh-key-manager/backend/internal/store"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/audit"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/authz"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/dbtest"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/store"
 )
 
 // Account administration against a real database.

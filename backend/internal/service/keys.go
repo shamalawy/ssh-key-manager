@@ -14,12 +14,12 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/hamalawy/ssh-key-manager/backend/internal/audit"
-	"github.com/hamalawy/ssh-key-manager/backend/internal/authz"
-	"github.com/hamalawy/ssh-key-manager/backend/internal/events"
-	"github.com/hamalawy/ssh-key-manager/backend/internal/keys"
-	"github.com/hamalawy/ssh-key-manager/backend/internal/store"
-	"github.com/hamalawy/ssh-key-manager/backend/internal/vault"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/audit"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/authz"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/events"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/keys"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/store"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/vault"
 )
 
 // MFAWindow is how recently a subject must have completed a second factor

@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hamalawy/ssh-key-manager/backend/internal/sshx"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/sshx"
 )
 
 // RemoteHost is a machine a sink can reach over SSH.

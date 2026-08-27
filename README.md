@@ -1,11 +1,14 @@
 # SKM — SSH Key Manager
 
+[![CI](https://github.com/shamalawy/ssh-key-manager/actions/workflows/ci.yml/badge.svg)](https://github.com/shamalawy/ssh-key-manager/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 Full-custody lifecycle management for SSH keys: generate, distribute, verify,
 rotate, roll back. A Go server with an embedded Angular interface, a REST API,
 and a CLI, deployed as two containers.
 
 ```
-make secrets && make up      # http://localhost:8080
+make secrets && make up      # http://localhost:8090
 ```
 
 ---
@@ -89,9 +92,9 @@ make up          # builds and starts skm_server + skm_postgres
 ```
 
 `make secrets` prints the generated admin password. Sign in as `admin` at
-<http://localhost:8080>; the account must change its password on first use.
+<http://localhost:8090>; the account must change its password on first use.
 
-If port 8080 is taken, `SKM_HTTP_PORT=8090 make up` moves it.
+If port 8090 is taken, `SKM_HTTP_PORT=8081 make up` moves it.
 
 ### Develop
 
@@ -293,9 +296,9 @@ from, so the documentation cannot describe an endpoint that does not exist or
 miss one that does. Two forms, both unauthenticated because documentation you
 have to sign in to read is documentation nobody reads:
 
-- **<http://localhost:8080/api/v1/docs>** — a browsable reference, server-rendered
+- **<http://localhost:8090/api/v1/docs>** — a browsable reference, server-rendered
   and entirely self-contained. No CDN, no fonts, no script from anywhere else.
-- **<http://localhost:8080/api/v1/openapi.json>** — an OpenAPI 3.1 document for
+- **<http://localhost:8090/api/v1/openapi.json>** — an OpenAPI 3.1 document for
   generating clients.
 
 The same reference is in the web interface under **API**, with a filter and
@@ -343,7 +346,7 @@ file, for Docker and Kubernetes secrets.
 | `SKM_LOG_LEVEL` / `SKM_LOG_FORMAT` | `info` / `json` | Logging |
 | `SKM_TLS_CERT_FILE` / `_KEY_FILE` | — | Serve HTTPS directly |
 | `SKM_MIGRATE_ON_START` | `true` | Apply migrations at boot |
-| `SKM_HTTP_PORT` | `8080` | Host port Compose publishes (not read by the binary) |
+| `SKM_HTTP_PORT` | `8090` | Host port Compose publishes (not read by the binary) |
 | `SKM_SCHEDULER_ENABLED` | `true` | Contend for the scheduler lock and run policies |
 | `SKM_WORKER_CONCURRENCY` | `10` | Jobs processed at once by this instance |
 | `SKM_BACKUP_DIR` | `/var/lib/skm/backups` | Where encrypted archives are written |
@@ -504,3 +507,11 @@ The test suite runs against real dependencies, not mocks. Notable cases:
 - The `exec` connector **refuses** a script outside its allow-list, one reached
   by traversal, one reached by symlink, and one that is world-writable — and
   never passes credentials in argv.
+
+---
+
+## Contributing and security
+
+- [CONTRIBUTING.md](CONTRIBUTING.md) — how to build, test, and send a change.
+- [SECURITY.md](SECURITY.md) — how to report a vulnerability privately.
+- [LICENSE](LICENSE) — MIT.

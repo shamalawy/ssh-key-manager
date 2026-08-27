@@ -3,8 +3,8 @@ package api
 import (
 	"net/http"
 
-	"github.com/hamalawy/ssh-key-manager/backend/internal/authz"
-	"github.com/hamalawy/ssh-key-manager/backend/internal/service"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/authz"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/service"
 )
 
 // ------------------------------------------------------------------ users ---

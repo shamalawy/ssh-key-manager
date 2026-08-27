@@ -17,13 +17,13 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/hamalawy/ssh-key-manager/backend/internal/authz"
-	"github.com/hamalawy/ssh-key-manager/backend/internal/backup"
-	"github.com/hamalawy/ssh-key-manager/backend/internal/connectors"
-	"github.com/hamalawy/ssh-key-manager/backend/internal/consumers"
-	"github.com/hamalawy/ssh-key-manager/backend/internal/service"
-	"github.com/hamalawy/ssh-key-manager/backend/internal/store"
-	"github.com/hamalawy/ssh-key-manager/backend/internal/vault"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/authz"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/backup"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/connectors"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/consumers"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/service"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/store"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/vault"
 )
 
 // ErrorBody is the uniform error shape every failure returns.

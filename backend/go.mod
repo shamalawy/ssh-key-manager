@@ -1,4 +1,4 @@
-module github.com/hamalawy/ssh-key-manager/backend
+module github.com/shamalawy/ssh-key-manager/backend
 
 go 1.26.3
 

@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/hamalawy/ssh-key-manager/backend/internal/events"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/events"
 )
 
 // handleAPIDocs serves a browsable reference for the same route table the

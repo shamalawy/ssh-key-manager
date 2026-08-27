@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hamalawy/ssh-key-manager/backend/internal/connectors"
-	"github.com/hamalawy/ssh-key-manager/backend/internal/keys"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/connectors"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/keys"
 )
 
 // Real keys, not fabricated base64: the extractor's job is to feed lines to the

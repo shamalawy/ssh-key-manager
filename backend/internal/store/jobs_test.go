@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hamalawy/ssh-key-manager/backend/internal/db"
-	"github.com/hamalawy/ssh-key-manager/backend/internal/dbtest"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/db"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/dbtest"
 )
 
 func jobRepo(t *testing.T) (*Jobs, *db.Pool) {

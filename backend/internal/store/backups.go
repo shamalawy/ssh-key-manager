@@ -9,7 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
-	"github.com/hamalawy/ssh-key-manager/backend/internal/db"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/db"
 )
 
 // Backup is one encrypted export of the vault.

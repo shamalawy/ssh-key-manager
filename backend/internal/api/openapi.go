@@ -5,7 +5,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/hamalawy/ssh-key-manager/backend/internal/events"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/events"
 )
 
 // Version is the API version reported in the OpenAPI document.

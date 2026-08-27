@@ -9,7 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/hamalawy/ssh-key-manager/backend/internal/dbtest"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/dbtest"
 )
 
 // testLogger returns a Logger backed by a database private to this test, so

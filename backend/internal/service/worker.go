@@ -10,12 +10,12 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/hamalawy/ssh-key-manager/backend/internal/audit"
-	"github.com/hamalawy/ssh-key-manager/backend/internal/authz"
-	"github.com/hamalawy/ssh-key-manager/backend/internal/cronx"
-	"github.com/hamalawy/ssh-key-manager/backend/internal/events"
-	"github.com/hamalawy/ssh-key-manager/backend/internal/jobs"
-	"github.com/hamalawy/ssh-key-manager/backend/internal/store"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/audit"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/authz"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/cronx"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/events"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/jobs"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/store"
 )
 
 // Worker binds the job runner and the scheduler to the services that do the

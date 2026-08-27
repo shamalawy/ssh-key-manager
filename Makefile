@@ -159,7 +159,7 @@ secrets: ## Generate the local secrets docker-compose expects
 	@echo "secrets written to $(DEPLOY)/secrets/ (git-ignored, directory mode 700)"
 	@echo "  admin password: $$(cat $(DEPLOY)/secrets/bootstrap_password)"
 
-# Override when 8080 is taken: `SKM_HTTP_PORT=8090 make up`
+# Override when 8090 is taken: `SKM_HTTP_PORT=8081 make up`
 SKM_HTTP_PORT ?= 8090
 export SKM_HTTP_PORT
 

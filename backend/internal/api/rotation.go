@@ -6,9 +6,9 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/hamalawy/ssh-key-manager/backend/internal/cronx"
-	"github.com/hamalawy/ssh-key-manager/backend/internal/service"
-	"github.com/hamalawy/ssh-key-manager/backend/internal/store"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/cronx"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/service"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/store"
 )
 
 // --------------------------------------------------------------- rotations ---

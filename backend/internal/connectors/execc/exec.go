@@ -31,9 +31,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hamalawy/ssh-key-manager/backend/internal/connectors"
-	"github.com/hamalawy/ssh-key-manager/backend/internal/diff"
-	"github.com/hamalawy/ssh-key-manager/backend/internal/keys"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/connectors"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/diff"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/keys"
 )
 
 // Kind is the connector's registered identifier.

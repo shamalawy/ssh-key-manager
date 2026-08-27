@@ -16,7 +16,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hamalawy/ssh-key-manager/backend/internal/db"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/db"
 )
 
 // EnvVar names the connection string pointing at a PostgreSQL server the tests

@@ -8,8 +8,8 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/hamalawy/ssh-key-manager/backend/internal/dbtest"
-	"github.com/hamalawy/ssh-key-manager/backend/internal/vault"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/dbtest"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/vault"
 )
 
 func repos(t *testing.T) (*Keys, *Targets, *Assignments, *Snapshots, *Changesets) {

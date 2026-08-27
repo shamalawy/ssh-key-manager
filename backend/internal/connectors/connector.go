@@ -19,7 +19,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/hamalawy/ssh-key-manager/backend/internal/keys"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/keys"
 )
 
 var (

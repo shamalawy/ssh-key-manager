@@ -16,8 +16,8 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/hamalawy/ssh-key-manager/backend/internal/store"
-	"github.com/hamalawy/ssh-key-manager/backend/internal/vault"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/store"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/vault"
 )
 
 // Signature header names. The scheme mirrors what most receivers already

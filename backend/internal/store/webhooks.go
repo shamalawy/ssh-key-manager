@@ -10,8 +10,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
-	"github.com/hamalawy/ssh-key-manager/backend/internal/db"
-	"github.com/hamalawy/ssh-key-manager/backend/internal/vault"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/db"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/vault"
 )
 
 // Webhook is an outbound notification endpoint.

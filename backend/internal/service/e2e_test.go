@@ -12,14 +12,14 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/hamalawy/ssh-key-manager/backend/internal/audit"
-	"github.com/hamalawy/ssh-key-manager/backend/internal/authz"
-	"github.com/hamalawy/ssh-key-manager/backend/internal/connectors"
-	"github.com/hamalawy/ssh-key-manager/backend/internal/connectors/linux"
-	"github.com/hamalawy/ssh-key-manager/backend/internal/dbtest"
-	"github.com/hamalawy/ssh-key-manager/backend/internal/keys"
-	"github.com/hamalawy/ssh-key-manager/backend/internal/store"
-	"github.com/hamalawy/ssh-key-manager/backend/internal/vault"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/audit"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/authz"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/connectors"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/connectors/linux"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/dbtest"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/keys"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/store"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/vault"
 )
 
 // harness wires the whole stack against a live database and a live sshd, so

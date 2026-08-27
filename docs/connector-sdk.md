@@ -104,8 +104,8 @@ import (
     "context"
     "fmt"
 
-    "github.com/hamalawy/ssh-key-manager/backend/internal/connectors"
-    "github.com/hamalawy/ssh-key-manager/backend/internal/keys"
+    "github.com/shamalawy/ssh-key-manager/backend/internal/connectors"
+    "github.com/shamalawy/ssh-key-manager/backend/internal/keys"
 )
 
 const Kind = "myvendor"

@@ -9,10 +9,10 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/hamalawy/ssh-key-manager/backend/internal/authz"
-	"github.com/hamalawy/ssh-key-manager/backend/internal/events"
-	"github.com/hamalawy/ssh-key-manager/backend/internal/service"
-	"github.com/hamalawy/ssh-key-manager/backend/internal/store"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/authz"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/events"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/service"
+	"github.com/shamalawy/ssh-key-manager/backend/internal/store"
 )
 
 // Permissions referenced by handlers in this file, aliased so the routing table
