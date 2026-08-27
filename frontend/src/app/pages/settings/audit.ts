@@ -18,8 +18,7 @@ import type { AuditEvent, ChainVerification } from '../../core/models';
     tr.expandable { cursor: pointer; }
   `],
   template: `
-    <h1>Audit trail</h1>
-    <p class="muted" style="margin-top: -0.4rem;">
+    <p class="muted" style="margin-bottom: 1.2rem;">
       Every entry commits to its predecessor by hash. Altering or removing one
       invalidates every entry after it, and verification detects that.
     </p>

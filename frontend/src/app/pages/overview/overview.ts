@@ -7,7 +7,7 @@ import { Alerts } from '../../shared/alerts';
 import type { AuditEvent, Dashboard as Stats, VaultStatus } from '../../core/models';
 
 @Component({
-  selector: 'skm-dashboard',
+  selector: 'skm-overview',
   imports: [RouterLink, DatePipe, Alerts],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: [`
@@ -29,7 +29,7 @@ import type { AuditEvent, Dashboard as Stats, VaultStatus } from '../../core/mod
     .feed td { font-size: 0.87rem; }
   `],
   template: `
-    <h1>Dashboard</h1>
+    <h1>Overview</h1>
 
     <skm-alerts [error]="error" />
 
@@ -49,21 +49,21 @@ import type { AuditEvent, Dashboard as Stats, VaultStatus } from '../../core/mod
           <div class="value">{{ s.active_keys }}</div>
           <div class="label">Active keys</div>
         </a>
-        <a class="stat" routerLink="/targets">
+        <a class="stat" routerLink="/machines">
           <div class="value">{{ s.targets }}</div>
-          <div class="label">Targets</div>
+          <div class="label">Machines</div>
         </a>
         <a class="stat" [class.attention]="s.expiring_soon > 0" routerLink="/keys">
           <div class="value">{{ s.expiring_soon }}</div>
           <div class="label">Expiring within 30 days</div>
         </a>
-        <a class="stat" [class.attention]="s.drifted_assignments > 0" routerLink="/deploy">
+        <a class="stat" [class.attention]="s.drifted_assignments > 0" routerLink="/install">
           <div class="value">{{ s.drifted_assignments }}</div>
-          <div class="label">Deployments out of sync</div>
+          <div class="label">Installs out of sync</div>
         </a>
-        <a class="stat" [class.bad]="s.unreachable_targets > 0" routerLink="/targets">
+        <a class="stat" [class.bad]="s.unreachable_targets > 0" routerLink="/machines">
           <div class="value">{{ s.unreachable_targets }}</div>
-          <div class="label">Unreachable targets</div>
+          <div class="label">Unreachable machines</div>
         </a>
         <a class="stat" [class.attention]="s.non_compliant_keys > 0" routerLink="/keys">
           <div class="value">{{ s.non_compliant_keys }}</div>
@@ -71,7 +71,7 @@ import type { AuditEvent, Dashboard as Stats, VaultStatus } from '../../core/mod
         </a>
 
         @if (s.active_rotations !== undefined) {
-          <a class="stat" [class.attention]="(s.rotations_awaiting_approval ?? 0) > 0" routerLink="/rotations">
+          <a class="stat" [class.attention]="(s.rotations_awaiting_approval ?? 0) > 0" routerLink="/rotation">
             <div class="value">{{ s.active_rotations }}</div>
             <div class="label">
               Rotations in flight
@@ -80,13 +80,13 @@ import type { AuditEvent, Dashboard as Stats, VaultStatus } from '../../core/mod
           </a>
         }
         @if (s.unmanaged_keys !== undefined) {
-          <a class="stat" [class.attention]="s.unmanaged_keys > 0" routerLink="/inventory">
+          <a class="stat" [class.attention]="s.unmanaged_keys > 0" routerLink="/machines/health">
             <div class="value">{{ s.unmanaged_keys }}</div>
-            <div class="label">Keys SKM did not deploy</div>
+            <div class="label">Keys SKM did not install</div>
           </a>
         }
         @if (s.jobs_dead !== undefined) {
-          <a class="stat" [class.bad]="s.jobs_dead > 0" routerLink="/jobs">
+          <a class="stat" [class.bad]="s.jobs_dead > 0" routerLink="/settings/jobs">
             <div class="value">{{ s.jobs_dead }}</div>
             <div class="label">
               Jobs that gave up
@@ -106,7 +106,7 @@ import type { AuditEvent, Dashboard as Stats, VaultStatus } from '../../core/mod
         <div class="notice warn">
           <strong>No vault backup has been taken.</strong>
           A lost master key with no archive means every private key is
-          unrecoverable. <a routerLink="/backups">Create one</a>.
+          unrecoverable. <a routerLink="/settings/backups">Create one</a>.
         </div>
       }
     } @else if (!error()) {
@@ -116,7 +116,7 @@ import type { AuditEvent, Dashboard as Stats, VaultStatus } from '../../core/mod
     <div class="card feed">
       <div class="card-header">
         <h2>Recent activity</h2>
-        <a routerLink="/audit" class="small">View the full trail →</a>
+        <a routerLink="/settings/audit" class="small">View the full trail →</a>
       </div>
 
       @if (recent().length === 0) {
@@ -147,7 +147,7 @@ import type { AuditEvent, Dashboard as Stats, VaultStatus } from '../../core/mod
     </div>
   `,
 })
-export class DashboardPage implements OnInit {
+export class OverviewPage implements OnInit {
   private readonly api = inject(Api);
 
   protected readonly stats = signal<Stats | null>(null);

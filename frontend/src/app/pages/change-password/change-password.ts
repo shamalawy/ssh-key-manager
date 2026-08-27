@@ -90,7 +90,7 @@ export class ChangePasswordPage {
       next: async () => {
         await this.auth.reload();
         this.busy.set(false);
-        void this.router.navigate(['/dashboard']);
+        void this.router.navigate(['/overview']);
       },
       error: (err: ApiError) => {
         this.busy.set(false);

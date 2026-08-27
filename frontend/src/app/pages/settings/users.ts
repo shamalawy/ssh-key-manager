@@ -40,8 +40,9 @@ import type { ApiToken, NewToken, PermissionInfo, Role, User } from '../../core/
     .spacer { flex: 1; }
   `],
   template: `
+    <p class="muted" style="margin-bottom: 1.2rem;">Manage user accounts, roles, and API tokens.</p>
+
     <div class="card-header">
-      <h1>Users and access</h1>
       <div class="row">
         @if (tab() === 'users' && auth.can('user.write')) {
           <button class="primary" type="button" (click)="openCreateUser()">Add user</button>
@@ -135,7 +136,7 @@ import type { ApiToken, NewToken, PermissionInfo, Role, User } from '../../core/
     @if (tab() === 'roles') {
       <p class="small faint">
         Roles are fixed sets, seeded on first boot. The split that matters is
-        operator against engineer: an operator runs rotations and deployments
+        operator against engineer: an operator runs rotations and installs
         that already exist, but cannot reveal a private key or restore a backup.
       </p>
       @for (r of roles(); track r.id) {

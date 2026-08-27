@@ -21,8 +21,7 @@ import { ConfirmHost } from '../shared/confirm';
         <ul class="nav">
           @for (item of navigation; track item.path) {
             <li>
-              <a [routerLink]="item.path" routerLinkActive="active"
-                 [routerLinkActiveOptions]="{ exact: item.exact ?? false }">
+              <a [routerLink]="item.path" routerLinkActive="active">
                 <span class="glyph" aria-hidden="true">{{ item.glyph }}</span>
                 {{ item.label }}
               </a>
@@ -37,7 +36,7 @@ import { ConfirmHost } from '../shared/confirm';
               <div class="roles small faint">{{ me.roles.join(', ') || 'no roles' }}</div>
             </div>
             @if (!me.user.totp_enrolled) {
-              <a class="mfa-warn small" routerLink="/settings">Second factor not enrolled</a>
+              <a class="mfa-warn small" routerLink="/settings/account">Second factor not enrolled</a>
             }
             <button class="ghost sm" type="button" (click)="auth.logout()">Sign out</button>
           }
@@ -55,18 +54,11 @@ export class Shell {
   protected readonly auth = inject(Auth);
 
   protected readonly navigation = [
-    { path: '/dashboard', label: 'Dashboard', glyph: '▤', exact: true },
+    { path: '/overview', label: 'Overview', glyph: '▤' },
+    { path: '/machines', label: 'Machines', glyph: '⬢' },
     { path: '/keys', label: 'Keys', glyph: '⚿' },
-    { path: '/targets', label: 'Targets', glyph: '⬢' },
-    { path: '/credentials', label: 'Credentials', glyph: '⚷' },
-    { path: '/deploy', label: 'Deploy', glyph: '↗' },
-    { path: '/rotations', label: 'Rotation', glyph: '⟳' },
-    { path: '/inventory', label: 'Inventory', glyph: '◈' },
-    { path: '/jobs', label: 'Jobs', glyph: '⚙' },
-    { path: '/backups', label: 'Backups', glyph: '⬇' },
-    { path: '/audit', label: 'Audit', glyph: '☰' },
-    { path: '/users', label: 'Users', glyph: '☺' },
-    { path: '/api', label: 'API', glyph: '⌘' },
+    { path: '/install', label: 'Install', glyph: '↗' },
+    { path: '/rotation', label: 'Rotation', glyph: '⟳' },
     { path: '/settings', label: 'Settings', glyph: '⚒' },
   ];
 }

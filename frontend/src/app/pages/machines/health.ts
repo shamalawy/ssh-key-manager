@@ -8,7 +8,7 @@ import { Confirm } from '../../shared/confirm';
 import type { DiscoveredKey, ReconcileResult, Target } from '../../core/models';
 
 @Component({
-  selector: 'skm-inventory',
+  selector: 'skm-fleet-health',
   imports: [Alerts, DatePipe, FormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: [`
@@ -24,100 +24,100 @@ import type { DiscoveredKey, ReconcileResult, Target } from '../../core/models';
     .report li { margin-bottom: 0.2rem; }
   `],
   template: `
-    <h1>Key inventory</h1>
-
     <skm-alerts [error]="error" [notice]="notice" />
 
-    <p class="small faint">
-      Every key found on a managed target that SKM did not put there. For an
-      estate that has never had key management, this is usually the first
-      genuinely useful thing to look at: it answers who can already log in.
-      Adopt a key to track it, or ignore one you have accounted for.
-    </p>
-
-    <div class="filters">
-      @for (f of stateFilters; track f.value) {
-        <button class="ghost sm" type="button" [class.on]="filter() === f.value"
-                (click)="setFilter(f.value)">{{ f.label }}</button>
+    <div class="card" style="margin-bottom: 1.4rem;">
+      <div class="card-header">
+        <h2>Machines</h2>
+        <button type="button" (click)="scan()" [disabled]="busy()">
+          @if (busy()) { <span class="spinner"></span> } {{ busy() ? 'Scanning…' : 'Check the fleet' }}
+        </button>
+      </div>
+      @if (targets().length) {
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th><th>Address</th><th>Health</th>
+                <th>Sync state</th><th>Last checked</th><th>Fix automatically</th><th></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (t of targets(); track t.id) {
+                <tr>
+                  <td><strong>{{ t.name }}</strong></td>
+                  <td class="mono small">{{ t.address }}:{{ t.port }}</td>
+                  <td><span class="badge" [class]="healthClass(t)">{{ t.health }}</span></td>
+                  <td><span class="badge" [class]="driftClass(t)">{{ syncStateLabel(t.drift_state) }}</span></td>
+                  <td class="small faint">{{ t.last_reconciled_at ? (t.last_reconciled_at | date:'MMM d, HH:mm') : '—' }}</td>
+                  <td class="small">{{ reconcileLabel(t.reconcile_mode) }}</td>
+                  <td>
+                    <button class="ghost sm" type="button" [disabled]="busyId() === t.id" (click)="checkMachine(t)">
+                      @if (busyId() === t.id) { <span class="spinner"></span> } Check now
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      } @else {
+        <div class="empty">Loading machines…</div>
       }
-
-      <span style="flex: 1;"></span>
-
-      <select [(ngModel)]="scanTargetId" style="max-width: 16rem;" [disabled]="busy()">
-        <option value="">The whole fleet</option>
-        @for (t of targets(); track t.id) { <option [value]="t.id">{{ t.name }}</option> }
-      </select>
-      <button type="button" (click)="scan()" [disabled]="busy()">
-        @if (busy()) { <span class="spinner"></span> } {{ busy() ? 'Scanning…' : 'Scan for drift' }}
-      </button>
     </div>
 
-    @if (lastScan(); as scan) {
-      <div class="card" style="margin-bottom: 1.4rem;">
-        <div class="card-header">
-          <h2>{{ scan.target_name }}</h2>
-          <span class="small faint">checked {{ scan.checked_at | date: 'short' }}</span>
-        </div>
-        <div class="card-body report">
-          @for (p of scan.principals; track p.principal_id) {
-            <div style="margin-bottom: 0.6rem;">
-              <strong>{{ p.username }}</strong>
-              @if (p.error) { <span style="color: var(--danger);"> — {{ p.error }}</span> }
-              @else if (!p.missing?.length && !p.unexpected?.length && !p.unmanaged?.length) {
-                <span class="small faint"> — in sync</span>
-              }
-              <ul>
-                @if (p.missing?.length) { <li>{{ p.missing?.length }} assigned key(s) not present on the host</li> }
-                @if (p.unexpected?.length) { <li>{{ p.unexpected?.length }} managed key(s) present that should not be</li> }
-                @if (p.unmanaged?.length) { <li>{{ p.unmanaged?.length }} key(s) SKM did not deploy</li> }
-                @if (p.healed) { <li style="color: var(--ok);">auto-healed</li> }
-              </ul>
-            </div>
-          }
-        </div>
-      </div>
-    }
-
     <div class="card">
+      <div class="card-header">
+        <h2>Keys SKM did not install</h2>
+      </div>
+
+      <div class="filters" style="margin-bottom: 0.8rem;">
+        @for (f of stateFilters; track f.value) {
+          <button class="ghost sm" type="button" [class.on]="filter() === f.value"
+                  (click)="setFilter(f.value)">{{ f.label }}</button>
+        }
+      </div>
+
       @if (discovered().length) {
-        <table>
-          <thead>
-            <tr>
-              <th>State</th><th>Fingerprint</th><th>Comment</th>
-              <th>Where</th><th>Last seen</th><th></th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (d of discovered(); track d.id) {
+        <div class="table-wrap">
+          <table>
+            <thead>
               <tr>
-                <td><span class="state" [class]="d.state">{{ d.state }}</span></td>
-                <td class="fp">{{ short(d.fingerprint_sha256) }}</td>
-                <td class="small">{{ d.comment || '—' }}</td>
-                <td class="small faint">{{ d.target_name }} · {{ d.username }}</td>
-                <td class="small faint">{{ d.last_seen_at | date: 'short' }}</td>
-                <td style="text-align: right; white-space: nowrap;">
-                  @if (d.state === 'unmanaged') {
-                    <button class="sm" type="button" (click)="adopt(d)" [disabled]="busyId() !== null">
-                      @if (busyId() === d.id) { <span class="spinner"></span> } Adopt
-                    </button>
-                    <button class="ghost sm" type="button" (click)="ignore(d)" [disabled]="busyId() !== null">
-                      @if (busyId() === d.id) { <span class="spinner"></span> } Ignore
-                    </button>
-                  }
-                </td>
+                <th>Fingerprint</th><th>Machine</th><th>Login</th>
+                <th>First seen</th><th></th>
               </tr>
-            }
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              @for (d of discovered(); track d.id) {
+                <tr>
+                  <td class="fp">{{ short(d.fingerprint_sha256) }}</td>
+                  <td class="small">{{ d.target_name }}</td>
+                  <td class="mono small">{{ d.username }}</td>
+                  <td class="small faint">{{ d.first_seen_at | date: 'short' }}</td>
+                  <td style="text-align: right; white-space: nowrap;">
+                    @if (d.state === 'unmanaged') {
+                      <button class="sm" type="button" (click)="adopt(d)" [disabled]="busyId() !== null">
+                        @if (busyId() === d.id) { <span class="spinner"></span> } Adopt
+                      </button>
+                      <button class="ghost sm" type="button" (click)="ignore(d)" [disabled]="busyId() !== null">
+                        @if (busyId() === d.id) { <span class="spinner"></span> } Ignore
+                      </button>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
       } @else {
         <div class="empty">
-          Nothing found. Run a scan to read the fleet's actual keys back.
+          Nothing found. Check the fleet to read the machines' keys back.
         </div>
       }
     </div>
   `,
 })
-export class InventoryPage implements OnInit, OnDestroy {
+export class FleetHealthPage implements OnInit, OnDestroy {
   private readonly api = inject(Api);
   private readonly confirm = inject(Confirm);
 
@@ -164,6 +164,10 @@ export class InventoryPage implements OnInit, OnDestroy {
       next: (res) => this.discovered.set(res.items),
       error: (err: Error) => this.error.set(err.message),
     });
+    this.api.listTargets().subscribe({
+      next: (res) => this.targets.set(res.items),
+      error: (err: Error) => this.error.set(err.message),
+    });
   }
 
   protected scan(): void {
@@ -179,14 +183,14 @@ export class InventoryPage implements OnInit, OnDestroy {
         if ('principals' in res) {
           this.busy.set(false);
           this.lastScan.set(res);
-          this.notice.set('Scan finished.');
+          this.notice.set('Check finished.');
           this.scanTargetId = '';
           this.refresh();
         } else {
           // Fleet-wide scan returned a Job; poll it
           const jobId = res.id;
           const shortId = jobId.slice(0, 8);
-          this.notice.set(`Scanning the fleet… (job ${shortId})`);
+          this.notice.set(`Checking the fleet… (job ${shortId})`);
           this.pollFleetScan(jobId);
         }
       },
@@ -209,9 +213,9 @@ export class InventoryPage implements OnInit, OnDestroy {
             this.busy.set(false);
 
             if (job.state === 'succeeded') {
-              this.notice.set('Scan finished.');
+              this.notice.set('Check finished.');
             } else {
-              this.error.set(`Scan ${job.state}.`);
+              this.error.set(`Check ${job.state}.`);
             }
             this.refresh();
           }
@@ -269,5 +273,60 @@ export class InventoryPage implements OnInit, OnDestroy {
 
   protected short(fingerprint: string): string {
     return fingerprint.replace(/^SHA256:/, '').slice(0, 16);
+  }
+
+  protected healthClass(t: Target): string {
+    switch (t.health) {
+      case 'healthy': return 'ok';
+      case 'degraded': return 'warn';
+      case 'unreachable': return 'danger';
+      default: return 'neutral';
+    }
+  }
+
+  protected driftClass(t: Target): string {
+    switch (t.drift_state) {
+      case 'in_sync': return 'ok';
+      case 'drifted': return 'warn';
+      case 'error': return 'danger';
+      default: return 'neutral';
+    }
+  }
+
+  protected syncStateLabel(state: string): string {
+    switch (state) {
+      case 'in_sync': return 'in sync';
+      case 'drifted': return 'out of sync';
+      case 'error': return 'error';
+      default: return 'unknown';
+    }
+  }
+
+  protected reconcileLabel(mode: string): string {
+    switch (mode) {
+      case 'report_only': return 'Report only';
+      case 'auto_heal': return 'Fix automatically';
+      case 'disabled': return 'Disabled';
+      default: return mode;
+    }
+  }
+
+  protected checkMachine(t: Target): void {
+    this.busyId.set(t.id);
+    this.api.reconcile(t.id).subscribe({
+      next: (res) => {
+        this.busyId.set(null);
+        if ('principals' in res) {
+          this.notice.set('Check finished.');
+          this.refresh();
+        } else {
+          this.notice.set('Check queued.');
+        }
+      },
+      error: (err: Error) => {
+        this.busyId.set(null);
+        this.error.set(err.message);
+      },
+    });
   }
 }

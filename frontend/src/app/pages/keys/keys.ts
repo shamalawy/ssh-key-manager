@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 
 import { Api, mfaRequired } from '../../core/api';
 import { Auth } from '../../core/auth';
@@ -9,11 +10,11 @@ import { Modal } from '../../shared/modal';
 import { Alerts } from '../../shared/alerts';
 import { StepUp } from '../../shared/stepup';
 import type { ApiError } from '../../core/api';
-import type { Assignment, ManagedKey, Principal, Target } from '../../core/models';
+import type { Assignment, ManagedKey } from '../../core/models';
 
 @Component({
   selector: 'skm-keys',
-  imports: [FormsModule, DatePipe, Modal, Alerts, StepUp],
+  imports: [FormsModule, DatePipe, Modal, Alerts, StepUp, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: [`
     .fingerprint { font-family: var(--mono); font-size: 0.78rem; color: var(--text-muted); }
@@ -45,12 +46,8 @@ import type { Assignment, ManagedKey, Principal, Target } from '../../core/model
     </div>
 
     <p class="muted" style="margin-top: -0.4rem;">
-      Every SSH key SKM looks after. <strong>Generate</strong> makes a brand new
-      pair here. <strong>Import</strong> takes a private key you already have —
-      one AWS handed you, or an old key off a laptop — and brings it under
-      management. Once a key is here, use <strong>Assign</strong> to say which
-      machines and logins should have it, then go to Deploy to actually put it
-      there.
+      Every SSH key SKM looks after. Generate a new pair here, or import one you
+      already have. To put a key on a machine, use Install.
     </p>
 
     <skm-alerts [error]="error" [notice]="notice" />
@@ -103,8 +100,7 @@ import type { Assignment, ManagedKey, Principal, Target } from '../../core/model
                     <div class="row">
                       <button class="ghost sm" type="button" (click)="select(k)">Details</button>
                       @if (auth.can('key.write')) {
-                        <button class="ghost sm" type="button" (click)="openAssign(k)"
-                                title="Choose which machines and logins should have this key">Assign</button>
+                        <a class="ghost sm" [routerLink]="'/install'" [queryParams]="{ key: k.id }">Install</a>
                       }
                       @if (auth.can('key.reveal') && k.has_private_key) {
                         <button class="ghost sm" type="button" (click)="openReveal(k)">Reveal</button>
@@ -228,76 +224,7 @@ import type { Assignment, ManagedKey, Principal, Target } from '../../core/model
       </skm-modal>
     }
 
-    <!-- Assign --------------------------------------------------------- -->
-    @if (assigning(); as k) {
-      <skm-modal [title]="'Where should ' + k.name + ' be installed?'" [wide]="true" (close)="assigning.set(null)">
-        @if (formError(); as message) { <div class="notice error">{{ message }}</div> }
-
-        <div class="notice info">
-          This only records the intention. Nothing is written to the machine
-          until you run a deployment, which shows you the exact change first.
-        </div>
-
-        <div class="grid cols-2">
-          <label>
-            <span class="label">Machine</span>
-            <select [(ngModel)]="assignDraft.targetId" (ngModelChange)="onAssignTargetChange()">
-              <option value="">— choose a machine —</option>
-              @for (t of targets(); track t.id) {
-                <option [value]="t.id">{{ t.name }} ({{ t.address }})</option>
-              }
-            </select>
-            @if (targets().length === 0) {
-              <span class="hint">No machines yet. Add one on the Targets page first.</span>
-            }
-          </label>
-
-          <label>
-            <span class="label">Login</span>
-            <select [(ngModel)]="assignDraft.principalId"
-                    [disabled]="assignPrincipals().length === 0">
-              <option value="">— choose a login —</option>
-              @for (p of assignPrincipals(); track p.id) {
-                <option [value]="p.id">{{ p.username }}{{ p.use_sudo ? ' (sudo)' : '' }}</option>
-              }
-            </select>
-            <span class="hint">
-              The user account on that machine, e.g. <code>root</code> or
-              <code>ubuntu</code>.
-            </span>
-            @if (assignDraft.targetId && assignPrincipals().length === 0) {
-              <span class="hint warn-text">
-                That machine has no logins set up. Add one under Targets.
-              </span>
-            }
-          </label>
-        </div>
-
-        <label>
-          <span class="label">Restrictions (optional)</span>
-          <input [(ngModel)]="assignDraft.options"
-                 placeholder="from=&quot;10.0.0.0/8&quot;, no-pty" />
-          <span class="hint">
-            Standard <code>authorized_keys</code> options, comma separated.
-            <code>from="…"</code> limits which addresses may use the key;
-            <code>no-pty</code> blocks interactive shells;
-            <code>command="…"</code> forces one command. Leave empty for no
-            restrictions.
-          </span>
-        </label>
-
-        <div class="row end">
-          <button type="button" (click)="assigning.set(null)">Cancel</button>
-          <button class="primary" type="button"
-                  [disabled]="busy() || !assignDraft.targetId || !assignDraft.principalId"
-                  (click)="assign(k)">
-            @if (busy()) { <span class="spinner"></span> } Assign
-          </button>
-        </div>
-      </skm-modal>
-    }
-
-    <!-- Details -------------------------------------------------------- -->
+<!-- Details -------------------------------------------------------- -->
     @if (selected(); as k) {
       <skm-modal [title]="k.name" [wide]="true" (close)="selected.set(null)">
 
@@ -306,7 +233,9 @@ import type { Assignment, ManagedKey, Principal, Target } from '../../core/model
             <div><span class="label small faint">Status</span>
                  <div><span class="badge" [class]="statusClass(k)">{{ k.status }}</span></div></div>
             <div><span class="label small faint">Generation</span><div>{{ k.generation }}</div></div>
-            <div><span class="label small faint">Class</span><div>{{ k.key_class }}</div></div>
+            @if (k.key_class === 'break_glass') {
+              <div><span class="label small faint">Class</span><div><span class="badge danger">break-glass</span></div></div>
+            }
             <div><span class="label small faint">Created</span><div>{{ k.created_at | date:'medium' }}</div></div>
             <div><span class="label small faint">Expires</span>
                  <div>{{ k.expires_at ? (k.expires_at | date:'medium') : 'never' }}</div></div>
@@ -326,9 +255,11 @@ import type { Assignment, ManagedKey, Principal, Target } from '../../core/model
           <h3 style="margin-top: 1.4rem;">Installed on</h3>
           @if (keyAssignments().length === 0) {
             <p class="small faint">
-              Not assigned anywhere yet. Close this and press <strong>Assign</strong>
-              to pick a machine.
+              Not installed anywhere yet.
             </p>
+            @if (auth.can('key.write')) {
+              <a [routerLink]="'/install'" [queryParams]="{ key: k.id }">Install on a machine</a>
+            }
           } @else {
             <div class="table-wrap">
               <table>
@@ -352,26 +283,9 @@ import type { Assignment, ManagedKey, Principal, Target } from '../../core/model
                 </tbody>
               </table>
             </div>
-          }
-
-          <!-- Lifecycle -->
-          @if (auth.can('key.write')) {
-            <h3 style="margin-top: 1.4rem;">Change stage</h3>
-            <p class="small faint" style="margin-top: -0.4rem;">
-              Where the key sits in its life. <code>staged</code> means it is on
-              the machines but not relied on yet; <code>active</code> is in
-              normal use; <code>retiring</code> means it is on its way out and
-              the next deployment with pruning will remove it. Most of the time
-              a rotation moves these for you — set it by hand only when you are
-              fixing something up.
-            </p>
-            <div class="row">
-              <select [(ngModel)]="statusDraft" style="max-width: 200px;">
-                @for (s of statuses; track s) { <option [value]="s">{{ s }}</option> }
-              </select>
-              <button type="button" [disabled]="busy() || statusDraft === k.status"
-                      (click)="changeStatus(k)">@if (busy()) { <span class="spinner"></span> } Set stage</button>
-            </div>
+            @if (auth.can('key.write')) {
+              <a [routerLink]="'/install'" [queryParams]="{ key: k.id }" style="margin-top: 0.5rem; display: block;">Install on another machine</a>
+            }
           }
 
           <div class="row end" style="margin-top: 1.2rem;">
@@ -440,28 +354,23 @@ export class KeysPage implements OnInit {
 
   protected readonly creating = signal(false);
   protected readonly importing = signal(false);
-  protected readonly assigning = signal<ManagedKey | null>(null);
   protected readonly selected = signal<ManagedKey | null>(null);
   protected readonly revealing = signal<ManagedKey | null>(null);
   protected readonly revealed = signal<string | null>(null);
   protected readonly needsStepUp = signal(false);
 
-  /** Machines and their logins, loaded so a key can be assigned from here. */
-  protected readonly targets = signal<Target[]>([]);
-  protected readonly assignPrincipals = signal<Principal[]>([]);
+  /** Assignments showing where keys are installed. */
   protected readonly assignments = signal<Assignment[]>([]);
 
   protected search = '';
   protected statusFilter = '';
   protected revealReason = '';
-  protected statusDraft = '';
   protected readonly statuses = ['pending', 'staged', 'active', 'retiring', 'retired', 'revoked', 'compromised'];
 
   protected draft = { name: '', algorithm: 'ed25519', comment: '', tags: '', validDays: null as number | null, breakGlass: false };
   protected importDraft = { name: '', privateKey: '', passphrase: '', tags: '' };
-  protected assignDraft = { targetId: '', principalId: '', options: '' };
 
-  /** The deployments of whichever key the details dialog is showing. */
+  /** The assignments of whichever key the details dialog is showing. */
   protected readonly keyAssignments = computed(() => {
     const k = this.selected();
     return k ? this.assignments().filter((a) => a.key_id === k.id) : [];
@@ -471,10 +380,6 @@ export class KeysPage implements OnInit {
     this.reload();
     this.api.connectors().subscribe({
       next: (r) => this.algorithms.set(r.algorithms),
-      error: (err: Error) => this.error.set(err.message),
-    });
-    this.api.listTargets().subscribe({
-      next: (r) => this.targets.set(r.items),
       error: (err: Error) => this.error.set(err.message),
     });
     this.loadAssignments();
@@ -536,10 +441,9 @@ export class KeysPage implements OnInit {
   }
 
   protected select(k: ManagedKey): void {
-    this.statusDraft = k.status;
     this.formError.set(null);
     this.selected.set(k);
-    // The list endpoint does not carry deployments, so refresh them alongside.
+    // The list endpoint does not carry assignments, so refresh them alongside.
     this.loadAssignments();
   }
 
@@ -588,86 +492,7 @@ export class KeysPage implements OnInit {
         this.importing.set(false);
         this.notice.set(
           `Imported ${k.name} (${k.algorithm}). SKM worked out the public key ` +
-          `from the private one — assign it to a machine to install it.`);
-        this.reload();
-      },
-      error: (err: Error) => {
-        this.busy.set(false);
-        this.formError.set(err.message);
-      },
-    });
-  }
-
-  // ------------------------------------------------------------- assign ---
-
-  protected openAssign(k: ManagedKey): void {
-    this.assignDraft = { targetId: '', principalId: '', options: '' };
-    this.assignPrincipals.set([]);
-    this.formError.set(null);
-    this.assigning.set(k);
-  }
-
-  protected onAssignTargetChange(): void {
-    this.assignDraft.principalId = '';
-    this.assignPrincipals.set([]);
-    if (!this.assignDraft.targetId) return;
-
-    this.api.listPrincipals(this.assignDraft.targetId).subscribe({
-      next: (r) => {
-        this.assignPrincipals.set(r.items);
-        // One login is not a choice worth making.
-        if (r.items.length === 1) this.assignDraft.principalId = r.items[0].id;
-      },
-      error: (err: Error) => this.formError.set(err.message),
-    });
-  }
-
-  protected assign(k: ManagedKey): void {
-    this.busy.set(true);
-    this.formError.set(null);
-
-    const target = this.targets().find((t) => t.id === this.assignDraft.targetId);
-    const login = this.assignPrincipals().find((p) => p.id === this.assignDraft.principalId);
-
-    this.api.createAssignment({
-      key_id: k.id,
-      target_id: this.assignDraft.targetId,
-      principal_id: this.assignDraft.principalId,
-      options: splitTags(this.assignDraft.options),
-    }).subscribe({
-      next: () => {
-        this.busy.set(false);
-        this.assigning.set(null);
-        this.notice.set(
-          `${k.name} is now meant to be on ${target?.name ?? 'the machine'}/${login?.username ?? ''}. ` +
-          `Nothing has been written yet — go to Deploy to apply it.`);
-        this.loadAssignments();
-      },
-      error: (err: Error) => {
-        this.busy.set(false);
-        this.formError.set(err.message);
-      },
-    });
-  }
-
-  // ---------------------------------------------------------- lifecycle ---
-
-  /**
-   * changeStatus moves the key between lifecycle stages by hand.
-   *
-   * Rotation normally owns these transitions. This exists for the case rotation
-   * cannot cover: a half-finished run, or a key adopted from the fleet that is
-   * already in use and should say so.
-   */
-  protected changeStatus(k: ManagedKey): void {
-    this.busy.set(true);
-    this.formError.set(null);
-
-    this.api.setKeyStatus(k.id, this.statusDraft).subscribe({
-      next: (updated) => {
-        this.busy.set(false);
-        this.selected.set(updated);
-        this.notice.set(`${k.name} is now ${updated.status}.`);
+          `from the private one. Use Install to put it on a machine.`);
         this.reload();
       },
       error: (err: Error) => {
@@ -736,7 +561,7 @@ export class KeysPage implements OnInit {
       next: () => {
         this.busy.set(false);
         this.selected.set(null);
-        this.notice.set(`Revoked ${k.name}. It will be removed from targets on the next deployment.`);
+        this.notice.set(`Revoked ${k.name}. It will be removed from machines on the next install.`);
         this.reload();
       },
       error: (err: Error) => {
@@ -776,7 +601,7 @@ export class KeysPage implements OnInit {
   protected async remove(k: ManagedKey): Promise<void> {
     if (!(await this.confirm.ask({
       title: `Delete "${k.name}"?`,
-      message: `This shreds the private key. It cannot be redeployed, rotated, or used to authenticate anywhere it is still installed, and there is no undo short of restoring a backup.`,
+      message: `This shreds the private key. It cannot be reinstalled, rotated, or used to authenticate anywhere it is still installed, and there is no undo short of restoring a backup.`,
       action: 'Delete',
       danger: true,
     }))) {

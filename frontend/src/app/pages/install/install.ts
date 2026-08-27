@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 
 import { Api } from '../../core/api';
 import { Auth } from '../../core/auth';
@@ -16,7 +16,7 @@ interface DiffLine {
 }
 
 @Component({
-  selector: 'skm-deploy',
+  selector: 'skm-install',
   imports: [FormsModule, DatePipe, RouterLink, Alerts],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: [`
@@ -44,9 +44,9 @@ interface DiffLine {
     .step .checkbox input { margin-top: 0.2rem; }
   `],
   template: `
-    <h1>Deploy</h1>
+    <h1>Install</h1>
     <p class="muted" style="margin-top: -0.4rem;">
-      Copy the keys you have assigned onto a machine. Pick a machine below and
+      Copy the keys you have planned onto a machine. Pick a machine below and
       SKM shows you the exact change first — nothing is written until you press
       <strong>Apply</strong>.
     </p>
@@ -81,7 +81,7 @@ interface DiffLine {
           </select>
           @if (targetId() && principals().length === 0) {
             <span class="hint">
-              This machine has no logins set up. Add one under Targets.
+              This machine has no logins set up. Add one under Machines.
             </span>
           }
         </label>
@@ -144,7 +144,7 @@ interface DiffLine {
               The old keys were left in place, so you are not locked out.
               @if (r.snapshot_id && !r.dry_run) {
                 <div style="margin-top: 0.5rem; font-size: 0.85rem;">
-                  To undo, <a routerLink="/targets">open the target's Details on the Targets page and roll back the snapshot this run took</a>.
+                  To undo, <a routerLink="/machines">open the machine's Details on the Machines page and roll back the snapshot this run took</a>.
                 </div>
               }
             </div>
@@ -152,7 +152,7 @@ interface DiffLine {
           @if (r.snapshot_id && !r.dry_run && !r.failed_keys?.length) {
             <p class="small faint" style="margin-top: 0.7rem;">
               A copy of the old file was saved first. Undo it from this machine's
-              Details on the Targets page.
+              Details on the Machines page.
             </p>
           }
         }
@@ -221,14 +221,14 @@ interface DiffLine {
         <h2>Coverage</h2>
         <div class="row">
           <div class="legend">
-            <span><i class="dot ok"></i> deployed &amp; verified</span>
-            <span><i class="dot pending"></i> deployed</span>
+            <span><i class="dot ok"></i> installed &amp; verified</span>
+            <span><i class="dot pending"></i> installed</span>
             <span><i class="dot bad"></i> failed</span>
             <span><i class="dot unknown"></i> not applied</span>
           </div>
           @if (auth.can('key.write')) {
             <button class="ghost sm" type="button" (click)="assignForm.set(!assignForm())">
-              {{ assignForm() ? 'Cancel' : 'Assign a key' }}
+              {{ assignForm() ? 'Cancel' : 'Add a key' }}
             </button>
           }
         </div>
@@ -236,8 +236,8 @@ interface DiffLine {
 
       <p class="small faint" style="padding: 0 1rem;">
         Which keys are <em>meant</em> to be on which machines, and whether they
-        actually are. A row appears here as soon as you assign a key; the dot
-        turns green once a deployment has put it there and proved it can log in.
+        actually are. A row appears here as soon as you add a key; the dot
+        turns green once an install has put it there and proved it can log in.
       </p>
 
       @if (assignForm()) {
@@ -286,10 +286,10 @@ interface DiffLine {
                   [disabled]="!assignDraft.keyId || !assignDraft.targetId || !assignDraft.principalId || busy()"
                   (click)="createAssignment()">
             @if (busy()) { <span class="spinner"></span> }
-            Assign
+            Add
           </button>
           <span class="hint">
-            This records intent only. Use the panel above to actually write it
+            This records the planned install only. Use the panel above to actually write it
             to the machine.
           </span>
         </div>
@@ -297,14 +297,14 @@ interface DiffLine {
 
       @if (assignments().length === 0) {
         <div class="empty">
-          Nothing is assigned yet. Press <strong>Assign a key</strong> above, or
-          use the <strong>Assign</strong> button next to any key on the Keys page.
+          Nothing is planned yet. Press <strong>Add a key</strong> above, or
+          use the <strong>Add</strong> button next to any key on the Keys page.
         </div>
       } @else {
         <div class="table-wrap">
           <table>
             <thead>
-              <tr><th></th><th>Key</th><th>Target</th><th>Account</th>
+              <tr><th></th><th>Key</th><th>Machine</th><th>Login</th>
                   <th>Desired</th><th>Actual</th><th>Verified</th><th>Options</th><th></th></tr>
             </thead>
             <tbody>
@@ -332,7 +332,7 @@ interface DiffLine {
                     @if (auth.can('key.write')) {
                       <button class="ghost sm" type="button" [disabled]="busyId() !== null" (click)="unassign(a)">
                         @if (busyId() === a.id) { <span class="spinner"></span> }
-                        Unassign
+                        Remove
                       </button>
                     }
                   </td>
@@ -348,7 +348,7 @@ interface DiffLine {
     <div class="card" style="margin-top: 1.4rem;">
       <div class="card-header">
         <h2>
-          Send private keys to other systems
+          Private-key deliveries
           <span class="badge neutral">optional</span>
         </h2>
         <div class="row">
@@ -357,7 +357,7 @@ interface DiffLine {
           </button>
           @if (showConsumers() && auth.can('key.write')) {
             <button class="ghost sm" type="button" (click)="consumerForm.set(!consumerForm())">
-              {{ consumerForm() ? 'Cancel' : 'Add destination' }}
+              {{ consumerForm() ? 'Cancel' : 'Add delivery' }}
             </button>
           }
         </div>
@@ -365,21 +365,9 @@ interface DiffLine {
 
       @if (showConsumers()) {
         <div class="notice info" style="margin: 0 1rem 1rem;">
-          <p style="margin: 0 0 0.5rem;">
-            <strong>Most people can ignore this.</strong> Everything above sends
-            the <em>public</em> key to a machine, which is what lets you log in.
-          </p>
-          <p style="margin: 0 0 0.5rem;">
-            Sometimes something else needs the <em>private</em> key as well — a
-            CI pipeline that has to SSH somewhere, a Vault path your apps read,
-            or a file on disk. Each of those places is called a
-            <strong>destination</strong> here.
-          </p>
           <p style="margin: 0;">
-            The reason it exists: when a key is rotated, the old one eventually
-            stops working. If your CI job is holding a copy of the old private
-            key and nothing updates it, the job breaks. Listing it here means SKM
-            updates it as part of the rotation instead.
+            Some systems need the private key too — a CI secret, a Vault path, a file on a host.
+            Register them here so a rotation updates them before the old key is retired.
           </p>
         </div>
       }
@@ -424,7 +412,7 @@ interface DiffLine {
                   }
                 </select>
                 @if (targets().length === 0) {
-                  <span class="hint">No machines yet. Add one under Targets.</span>
+                  <span class="hint">No machines yet. Add one under Machines.</span>
                 }
               </label>
               <label>
@@ -468,7 +456,7 @@ interface DiffLine {
                   [disabled]="!consumerReady() || busy()"
                   (click)="createConsumer()">
             @if (busy()) { <span class="spinner"></span> }
-            Save destination
+            Create delivery
           </button>
         </div>
       }
@@ -477,7 +465,7 @@ interface DiffLine {
         @if (consumers().length === 0) {
           <div class="empty">
             Nothing set up. That is the normal case — add one only if some other
-            system needs a copy of a private key.
+            system needs the private key.
           </div>
         } @else {
           <div class="table-wrap">
@@ -531,10 +519,11 @@ interface DiffLine {
     </div>
   `,
 })
-export class DeployPage implements OnInit {
+export class InstallPage implements OnInit {
   private readonly api = inject(Api);
   protected readonly auth = inject(Auth);
   private readonly confirm = inject(Confirm);
+  private readonly route = inject(ActivatedRoute);
 
   protected readonly targets = signal<Target[]>([]);
   protected readonly principals = signal<Principal[]>([]);
@@ -590,13 +579,37 @@ export class DeployPage implements OnInit {
 
   ngOnInit(): void {
     this.api.listTargets().subscribe({
-      next: (r) => this.targets.set(r.items),
+      next: (r) => {
+        this.targets.set(r.items);
+        // Handle ?target=<id>&principal=<id> query params
+        this.route.queryParamMap.subscribe((params) => {
+          const targetId = params.get('target');
+          const principalId = params.get('principal');
+          if (targetId) {
+            this.chooseTarget(targetId);
+            if (principalId) {
+              // Set principal after target is chosen
+              setTimeout(() => this.choosePrincipal(principalId), 0);
+            }
+          }
+        });
+      },
       error: (err: Error) => this.error.set(err.message),
     });
     this.loadAssignments();
     this.loadConsumers();
     this.api.listKeys().subscribe({
-      next: (r) => this.keys.set(r.items),
+      next: (r) => {
+        this.keys.set(r.items);
+        // Handle ?key=<id> query param
+        this.route.queryParamMap.subscribe((params) => {
+          const keyId = params.get('key');
+          if (keyId) {
+            this.assignDraft.keyId = keyId;
+            this.assignForm.set(true);
+          }
+        });
+      },
       error: (err: Error) => this.error.set(err.message),
     });
   }
@@ -688,15 +701,15 @@ export class DeployPage implements OnInit {
   /**
    * unassign drops the desired-state row.
    *
-   * It does not touch the host. Removing a key from a target is a deployment,
+   * It does not touch the host. Removing a key from a machine is an install,
    * not a database edit, and the two being different is the whole reason
    * desired state exists — so the confirmation says which one this is.
    */
   protected async unassign(a: Assignment): Promise<void> {
     if (!(await this.confirm.ask({
-      title: `Unassign ${a.key_name} from ${a.target_name}/${a.username}?`,
-      message: 'SKM stops intending the key to be there. The key stays on the host until a deployment with pruning removes it.',
-      action: 'Unassign',
+      title: `Remove ${a.key_name} from ${a.target_name}/${a.username}?`,
+      message: 'SKM stops intending the key to be there. The key stays on the host until an install with pruning removes it.',
+      action: 'Remove',
     }))) return;
 
     this.busyId.set(a.id);
@@ -717,7 +730,7 @@ export class DeployPage implements OnInit {
   /**
    * refreshPreview re-runs the dry run after the desired state changes.
    *
-   * Editing an assignment changes what the next deployment would do, so a
+   * Editing an assignment changes what the next install would do, so a
    * preview taken before the edit is wrong. Leaving it on screen is worse than
    * showing nothing: it looks like the change had no effect.
    */
@@ -749,7 +762,7 @@ export class DeployPage implements OnInit {
    *
    * Nothing is written to the host here. Keeping the two apart is what makes
    * the dry-run diff above meaningful: intent is edited in the database,
-   * reality is changed by a deployment, and the gap between them is visible.
+   * reality is changed by an install, and the gap between them is visible.
    */
   protected createAssignment(): void {
     this.error.set(null);
@@ -828,7 +841,7 @@ export class DeployPage implements OnInit {
   };
 
   protected consumerKindLabel(kind: string): string {
-    return DeployPage.CONSUMER_KINDS[kind] ?? kind;
+    return InstallPage.CONSUMER_KINDS[kind] ?? kind;
   }
 
   /** A worked example for the chosen destination, rather than one generic blob. */
@@ -851,7 +864,7 @@ export class DeployPage implements OnInit {
   protected configHelp(): string {
     switch (this.consumerDraft.kind) {
       case 'ssh_file':
-        return 'target_id is the machine from the Targets page — copy its id from the URL or the list. ' +
+        return 'target_id is the machine from the Machines page — copy its id from the URL or the list. ' +
           'username is the login to write as; path is where the private key file goes. ' +
           'Add "write_public": "true" to drop the matching .pub beside it, and "use_sudo": true if the path needs root.';
       case 'vault_kv':
@@ -951,8 +964,8 @@ export class DeployPage implements OnInit {
 
   protected async removeConsumer(c: Consumer): Promise<void> {
     if (!(await this.confirm.ask({
-      title: `Delete the consumer "${c.name}"?`,
-      message: 'Whatever it already delivered stays where it was delivered. Rotations will simply stop updating it, which is worth being sure about.',
+      title: `Delete the delivery "${c.name}"?`,
+      message: 'Whatever it already delivered stays where it was sent. Rotations will simply stop updating it, which is worth being sure about.',
       action: 'Delete',
       danger: true,
     }))) return;

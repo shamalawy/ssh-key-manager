@@ -28,12 +28,12 @@ import type { Job, JobLog } from '../../core/models';
     .filters button.on { border-color: var(--accent); color: var(--accent); }
   `],
   template: `
-    <h1>Jobs</h1>
+    <p class="muted" style="margin-bottom: 1.2rem;">Monitor scheduled work and manual operations.</p>
 
     <skm-alerts [error]="error" />
 
     <p class="small faint">
-      Every rotation step, deployment, and drift sweep runs as a durable job.
+      Every rotation step, install, and fleet check runs as a durable job.
       A job that gave up stays here rather than disappearing — that is exactly
       what you need to see when something stopped working.
     </p>

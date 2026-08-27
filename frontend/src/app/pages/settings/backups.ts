@@ -25,7 +25,7 @@ import type { Backup, BackupVerification } from '../../core/models';
               padding: 0.8rem 1rem; margin: 0.9rem 0; }
   `],
   template: `
-    <h1>Backup and restore</h1>
+    <p class="muted" style="margin-bottom: 1.2rem;">Create archives of all private keys and metadata for recovery.</p>
 
     <skm-alerts [error]="error" [notice]="notice" />
 
@@ -44,7 +44,7 @@ import type { Backup, BackupVerification } from '../../core/models';
           <label>
             Contents
             <select [(ngModel)]="kind">
-              <option value="full">Everything (keys, targets, policies) — needs a second factor</option>
+              <option value="full">Everything (keys, machines, schedules) — needs a second factor</option>
               <option value="keys_only">Keys only</option>
               <option value="metadata">Metadata only — no private keys</option>
             </select>
@@ -137,7 +137,7 @@ import type { Backup, BackupVerification } from '../../core/models';
         <div class="card-body">
           <p class="small">
             {{ v.keys_decrypted }} of {{ v.key_count }} private keys decrypted and matched
-            their recorded fingerprints. {{ v.target_count }} target(s) in the archive.
+            their recorded fingerprints. {{ v.target_count }} machine(s) in the archive.
           </p>
           <p class="small faint">
             "The backup ran" and "the backup can be restored" are different
@@ -175,7 +175,6 @@ import type { Backup, BackupVerification } from '../../core/models';
 })
 export class BackupsPage implements OnInit {
   private readonly api = inject(Api);
-  private readonly auth = inject(Auth);
   private readonly confirm = inject(Confirm);
 
   protected readonly backups = signal<Backup[]>([]);

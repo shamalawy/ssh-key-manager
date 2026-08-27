@@ -194,6 +194,21 @@ tbody tr:last-child td { border-bottom: none; }
   color: var(--text-muted);
 }
 
+/* ------------------------------------------------------------------ tabs --- */
+
+.tabs {
+  display: flex; gap: 0.25rem; flex-wrap: wrap;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 1.2rem;
+}
+.tabs a, .tabs button {
+  background: none; border: none; border-bottom: 2px solid transparent; border-radius: 0;
+  margin-bottom: -1px; padding: 0.5rem 0.8rem;
+  color: var(--text-muted); font-size: 0.92rem; text-decoration: none; cursor: pointer;
+}
+.tabs a:hover, .tabs button:hover { color: var(--text); }
+.tabs a.active, .tabs button.on { color: var(--accent); border-bottom-color: var(--accent); }
+
 /* --------------------------------------------------------------- notices --- */
 
 .notice {

@@ -7,10 +7,10 @@ import { Auth } from '../../core/auth';
 import { Alerts } from '../../shared/alerts';
 import { Confirm } from '../../shared/confirm';
 import { Modal } from '../../shared/modal';
-import type { ConnectorInfo, ConnectorSetting, Credential, Principal, Snapshot, Target } from '../../core/models';
+import type { ConnectorInfo, ConnectorSetting, Credential, DiscoveredKey, Principal, Snapshot, Target } from '../../core/models';
 
 @Component({
-  selector: 'skm-targets',
+  selector: 'skm-machine-list',
   imports: [FormsModule, DatePipe, Alerts, Modal],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: [`
@@ -29,16 +29,34 @@ import type { ConnectorInfo, ConnectorSetting, Credential, Principal, Snapshot, 
       white-space: pre-wrap; word-break: break-all;
       max-height: 220px; overflow-y: auto;
     }
+    .kind-picker { display: grid; gap: 0.5rem; margin-bottom: 1rem; }
+    .kind-option {
+      display: flex; gap: 0.6rem; align-items: flex-start;
+      padding: 0.7rem; border: 1px solid var(--border);
+      border-radius: var(--radius); cursor: pointer;
+    }
+    .kind-option:hover { border-color: var(--accent); }
+    .kind-option.chosen { border-color: var(--accent); background: var(--bg-input); }
+    .kind-option input { margin-top: 0.2rem; }
+    .kind-option .blurb { color: var(--text-muted); font-size: 0.8rem; margin-top: 0.15rem; }
+    textarea.pem {
+      font-family: var(--mono); font-size: 0.74rem; min-height: 150px;
+      white-space: pre; overflow-wrap: normal; overflow-x: auto;
+    }
     .req { color: var(--danger); }
     .spacer { flex: 1; }
   `],
   template: `
     <div class="card-header">
-      <h1>Targets</h1>
       @if (auth.can('target.write')) {
-        <button class="primary" type="button" (click)="openCreate()">Add target</button>
+        <button class="primary" type="button" (click)="openCreate()">Add machine</button>
       }
     </div>
+
+    <p class="intro">
+      Every machine SKM puts keys on. Add one, tell SKM how to connect, and add
+      the logins whose authorized_keys it should manage.
+    </p>
 
     <skm-alerts [error]="error" [notice]="notice" />
 
@@ -46,7 +64,7 @@ import type { ConnectorInfo, ConnectorSetting, Credential, Principal, Snapshot, 
       <input type="search" placeholder="Search name or address…"
              [(ngModel)]="search" (ngModelChange)="reload()" />
       <span class="spacer"></span>
-      <span class="muted small">{{ targets().length }} target(s)</span>
+      <span class="muted small">{{ targets().length }} machine(s)</span>
     </div>
 
     <div class="card">
@@ -54,8 +72,8 @@ import type { ConnectorInfo, ConnectorSetting, Credential, Principal, Snapshot, 
         <div class="empty"><span class="spinner"></span> Loading…</div>
       } @else if (targets().length === 0) {
         <div class="empty">
-          No targets yet. First add a credential on the <strong>Credentials</strong>
-          tab so SKM has a way to sign in, then add a target here and pick it.
+          No machines yet. Add a machine, tell SKM how to connect, then add the
+          logins whose authorized_keys it should manage.
         </div>
       } @else {
         <div class="table-wrap">
@@ -63,7 +81,7 @@ import type { ConnectorInfo, ConnectorSetting, Credential, Principal, Snapshot, 
             <thead>
               <tr>
                 <th>Name</th><th>Kind</th><th>Address</th><th>Health</th>
-                <th>Drift</th><th>Tags</th><th>Last seen</th><th></th>
+                <th>Sync state</th><th>Tags</th><th>Last seen</th><th></th>
               </tr>
             </thead>
             <tbody>
@@ -77,14 +95,14 @@ import type { ConnectorInfo, ConnectorSetting, Credential, Principal, Snapshot, 
                   <td class="mono small">{{ t.kind }}</td>
                   <td class="mono small">{{ t.address }}:{{ t.port }}</td>
                   <td><span class="badge" [class]="healthClass(t)">{{ t.health }}</span></td>
-                  <td><span class="badge" [class]="driftClass(t)">{{ t.drift_state }}</span></td>
+                  <td><span class="badge" [class]="driftClass(t)">{{ syncStateLabel(t.drift_state) }}</span></td>
                   <td>@for (tag of t.tags; track tag) { <span class="tag">{{ tag }}</span> }</td>
                   <td class="small faint">{{ t.last_seen_at ? (t.last_seen_at | date:'MMM d, HH:mm') : '—' }}</td>
                   <td>
                     <div class="row">
                       <button class="ghost sm" type="button" (click)="select(t)">Details</button>
                       <button class="ghost sm" type="button" [disabled]="probing() === t.id" (click)="probe(t)">
-                        @if (probing() === t.id) { <span class="spinner"></span> } Probe
+                        @if (probing() === t.id) { <span class="spinner"></span> } Check
                       </button>
                       @if (auth.can('target.write')) {
                         <button class="ghost sm" type="button" (click)="openEdit(t)">Edit</button>
@@ -141,9 +159,9 @@ import type { ConnectorInfo, ConnectorSetting, Credential, Principal, Snapshot, 
       </div>
     </div>
 
-    <!-- Add target ----------------------------------------------------- -->
+    <!-- Add machine ----------------------------------------------------- -->
     @if (creating()) {
-      <skm-modal title="Add a target" (close)="creating.set(false)">
+      <skm-modal title="Add a machine" (close)="creating.set(false)">
         @if (formError(); as message) { <div class="notice error">{{ message }}</div> }
 
           <label>
@@ -169,21 +187,82 @@ import type { ConnectorInfo, ConnectorSetting, Credential, Principal, Snapshot, 
             </label>
           </div>
 
-          <label>
-            <span class="label">Credential</span>
-            <select [(ngModel)]="draft.credentialId">
-              <option [ngValue]="null">— none —</option>
-              @for (c of credentials(); track c.id) {
-                <option [ngValue]="c.id">{{ c.name }} ({{ c.kind }}, {{ c.username }})</option>
-              }
-            </select>
-            <span class="hint">
-              Optional here; without one, SKM cannot connect until you set it in Edit. How SKM signs in to manage this host. For an EC2 instance this is
-              the <code>.pem</code> AWS gave you plus the image's login name
-              (<code>ec2-user</code>, <code>ubuntu</code>). If the list is empty,
-              add one on the <strong>Credentials</strong> tab first.
-            </span>
-          </label>
+          <span class="label">How SKM connects</span>
+          <div class="kind-picker">
+            <label class="kind-option" [class.chosen]="draft.connectionSource === 'saved'">
+              <input type="radio" name="connSource" value="saved" [(ngModel)]="draft.connectionSource" />
+              <span>
+                <strong>Use a saved connection</strong>
+                <div class="blurb">Pick one you have already added.</div>
+              </span>
+            </label>
+            <label class="kind-option" [class.chosen]="draft.connectionSource === 'new'">
+              <input type="radio" name="connSource" value="new" [(ngModel)]="draft.connectionSource" />
+              <span>
+                <strong>New connection</strong>
+                <div class="blurb">Create it now and use it for this machine.</div>
+              </span>
+            </label>
+          </div>
+
+          @if (draft.connectionSource === 'saved') {
+            <label>
+              <span class="label">Saved connection</span>
+              <select [(ngModel)]="draft.credentialId">
+                <option [ngValue]="null">— none —</option>
+                @for (c of credentials(); track c.id) {
+                  <option [ngValue]="c.id">{{ c.name }} ({{ c.kind }}, {{ c.username }})</option>
+                }
+              </select>
+              <span class="hint">
+                Optional here; without one, you will need to set it in Edit before SKM can connect.
+              </span>
+            </label>
+          } @else {
+            <label>
+              <span class="label">Username</span>
+              <input [(ngModel)]="draft.newConnUsername" placeholder="ec2-user, ubuntu, admin…" />
+              <span class="hint">The account SKM logs in as.</span>
+            </label>
+
+            <span class="label">Authentication</span>
+            <div class="kind-picker">
+              <label class="kind-option" [class.chosen]="draft.newConnAuthType === 'password'">
+                <input type="radio" name="authType" value="password" [(ngModel)]="draft.newConnAuthType" />
+                <span>
+                  <strong>Password</strong>
+                  <div class="blurb">A username and password.</div>
+                </span>
+              </label>
+              <label class="kind-option" [class.chosen]="draft.newConnAuthType === 'key'">
+                <input type="radio" name="authType" value="key" [(ngModel)]="draft.newConnAuthType" />
+                <span>
+                  <strong>Private key</strong>
+                  <div class="blurb">A username and a private key file.</div>
+                </span>
+              </label>
+            </div>
+
+            @if (draft.newConnAuthType === 'password') {
+              <label>
+                <span class="label">Password</span>
+                <input type="password" [(ngModel)]="draft.newConnSecret" />
+                <span class="hint">Encrypted before storage and never shown again.</span>
+              </label>
+            } @else {
+              <label>
+                <span class="label">Key file</span>
+                <input type="file" accept=".pem,.key,.txt" (change)="pickConnFile($event)" />
+                <span class="hint">Or paste it below instead.</span>
+              </label>
+              <label>
+                <span class="label">Private key</span>
+                <textarea class="pem" [(ngModel)]="draft.newConnSecret"
+                          placeholder="-----BEGIN RSA PRIVATE KEY-----&#10;…&#10;-----END RSA PRIVATE KEY-----"></textarea>
+                <span class="hint">The whole file, BEGIN and END lines included.</span>
+              </label>
+            }
+          }
 
           <label>
             <span class="label">Tags</span>
@@ -230,18 +309,11 @@ import type { ConnectorInfo, ConnectorSetting, Credential, Principal, Snapshot, 
           </button>
         </div>
 
-        <hr style="border: none; border-top: 1px solid var(--border-soft); margin: 1.3rem 0 1rem;" />
-
-        <p class="small faint">
-          Credentials live on their own tab now, where a private key gets a
-          proper box to paste into. Open <strong>Credentials</strong> in the
-          sidebar, add one, then come back and pick it here.
-        </p>
       </skm-modal>
     }
 
 
-    <!-- Edit target ---------------------------------------------------- -->
+    <!-- Edit machine ---------------------------------------------------- -->
     @if (editing(); as t) {
       <skm-modal [title]="'Edit ' + t.name" [wide]="true" (close)="editing.set(null)">
         @if (formError(); as message) { <div class="notice error">{{ message }}</div> }
@@ -268,7 +340,7 @@ import type { ConnectorInfo, ConnectorSetting, Credential, Principal, Snapshot, 
           </div>
 
           <label>
-            <span class="label">Credential</span>
+            <span class="label">Connection</span>
             <select [(ngModel)]="edit.credentialId" name="edit-credential">
               <option [ngValue]="null">— none —</option>
               @for (c of credentials(); track c.id) {
@@ -283,15 +355,15 @@ import type { ConnectorInfo, ConnectorSetting, Credential, Principal, Snapshot, 
           </label>
 
           <label>
-            <span class="label">Drift handling</span>
+            <span class="label">Fix automatically</span>
             <select [(ngModel)]="edit.reconcileMode" name="edit-reconcile">
-              <option value="report_only">Report only — tell me, change nothing</option>
-              <option value="auto_heal">Auto heal — put back what should be there</option>
-              <option value="disabled">Disabled — do not scan this target</option>
+              <option value="report_only">Report only</option>
+              <option value="auto_heal">Fix automatically</option>
+              <option value="disabled">Disabled</option>
             </select>
             <span class="hint">
-              Auto heal reapplies desired state on every sweep. Report only is the
-              honest default until you trust what the scan is finding.
+              Fix automatically reapplies the intended state on every check. Report only
+              is the default until you trust what SKM finds.
             </span>
           </label>
 
@@ -355,7 +427,7 @@ import type { ConnectorInfo, ConnectorSetting, Credential, Principal, Snapshot, 
       </skm-modal>
     }
 
-    <!-- Target details ------------------------------------------------- -->
+    <!-- Machine details ------------------------------------------------- -->
     @if (selected(); as t) {
       <skm-modal [title]="t.name" [wide]="true" (close)="selected.set(null)">
 
@@ -365,8 +437,8 @@ import type { ConnectorInfo, ConnectorSetting, Credential, Principal, Snapshot, 
             <div><span class="label small faint">Health</span>
                  <div><span class="badge" [class]="healthClass(t)">{{ t.health }}</span>
                       <span class="small muted"> {{ t.health_message }}</span></div></div>
-            <div><span class="label small faint">Drift</span>
-                 <div><span class="badge" [class]="driftClass(t)">{{ t.drift_state }}</span></div></div>
+            <div><span class="label small faint">Sync state</span>
+                 <div><span class="badge" [class]="driftClass(t)">{{ syncStateLabel(t.drift_state) }}</span></div></div>
           </div>
 
           <span class="label small faint">Pinned host key</span>
@@ -374,9 +446,9 @@ import type { ConnectorInfo, ConnectorSetting, Credential, Principal, Snapshot, 
             {{ t.host_key_pin || 'not yet pinned — run a probe' }}
           </div>
 
-          <h3>Managed accounts</h3>
+          <h3>Logins</h3>
           @if (principals().length === 0) {
-            <p class="muted small">No accounts are managed on this target yet.</p>
+            <p class="muted small">No logins on this machine yet.</p>
           } @else {
             @for (p of principals(); track p.id) {
               <div class="principal-row">
@@ -422,8 +494,7 @@ import type { ConnectorInfo, ConnectorSetting, Credential, Principal, Snapshot, 
                   <p class="small faint" style="margin: 0 0 0.4rem;">
                     What SKM wants <code class="mono">{{ p.username }}</code>'s
                     <code>authorized_keys</code> to contain. This is the intended
-                    file, not a read of the machine — deploy to make the machine
-                    match it.
+                    state, not a read of the machine.
                   </p>
                   <pre class="keys-preview">{{ keysText() || '(loading…)' }}</pre>
                   <button class="ghost sm" type="button" (click)="copyKeys()">Copy</button>
@@ -439,7 +510,7 @@ import type { ConnectorInfo, ConnectorSetting, Credential, Principal, Snapshot, 
                 <input type="checkbox" [(ngModel)]="newPrincipalSudo" /> <span>use sudo</span>
               </label>
               <button type="button" [disabled]="busy() || !newPrincipal" (click)="addPrincipal(t)">
-                @if (busy()) { <span class="spinner"></span> } Add account
+                @if (busy()) { <span class="spinner"></span> } Add login
               </button>
             </div>
           }
@@ -472,9 +543,37 @@ import type { ConnectorInfo, ConnectorSetting, Credential, Principal, Snapshot, 
             </div>
           }
 
+          <h3 style="margin-top: 1.4rem;">Keys SKM did not install</h3>
+          @if (discoveredKeys().length === 0) {
+            <p class="muted small">None — everything on this machine was put there by SKM.</p>
+          } @else {
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Fingerprint</th><th>Login</th><th>First seen</th><th></th></tr></thead>
+                <tbody>
+                  @for (d of discoveredKeys(); track d.id) {
+                    <tr>
+                      <td class="mono small" style="font-size: 0.72rem;">{{ short(d.fingerprint_sha256) }}</td>
+                      <td class="mono small">{{ d.username }}</td>
+                      <td class="small faint">{{ d.first_seen_at | date:'MMM d, HH:mm' }}</td>
+                      <td style="text-align: right;">
+                        <button class="sm" type="button" (click)="adoptDiscoveredKey(d)" [disabled]="busyId() !== null">
+                          @if (busyId() === d.id) { <span class="spinner"></span> } Adopt
+                        </button>
+                        <button class="ghost sm" type="button" (click)="ignoreDiscoveredKey(d)" [disabled]="busyId() !== null">
+                          @if (busyId() === d.id) { <span class="spinner"></span> } Ignore
+                        </button>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+
         <div class="row end" style="margin-top: 1.2rem;">
           @if (auth.can('target.write')) {
-            <button type="button" (click)="selected.set(null); openEdit(t)">Edit target</button>
+            <button type="button" (click)="selected.set(null); openEdit(t)">Edit machine</button>
           }
           <button type="button" (click)="selected.set(null)">Close</button>
         </div>
@@ -482,7 +581,7 @@ import type { ConnectorInfo, ConnectorSetting, Credential, Principal, Snapshot, 
     }
   `,
 })
-export class TargetsPage implements OnInit {
+export class MachineListPage implements OnInit {
   private readonly api = inject(Api);
   protected readonly auth = inject(Auth);
   private readonly confirm = inject(Confirm);
@@ -492,6 +591,7 @@ export class TargetsPage implements OnInit {
   protected readonly connectors = signal<string[]>(['linux']);
   protected readonly principals = signal<Principal[]>([]);
   protected readonly snapshots = signal<Snapshot[]>([]);
+  protected readonly discoveredKeys = signal<DiscoveredKey[]>([]);
 
   protected readonly loading = signal(true);
   protected readonly busy = signal(false);
@@ -520,6 +620,9 @@ export class TargetsPage implements OnInit {
     name: '', connector: 'linux', address: '', port: 22,
     credentialId: null as string | null, tags: '', isCanary: false,
     config: {} as Record<string, unknown>,
+    connectionSource: 'saved' as 'saved' | 'new',
+    newConnUsername: '', newConnAuthType: 'password' as 'password' | 'key',
+    newConnSecret: '',
   };
 
   protected edit = {
@@ -577,6 +680,8 @@ export class TargetsPage implements OnInit {
     this.draft = {
       name: '', connector: 'linux', address: '', port: 22,
       credentialId: null, tags: '', isCanary: false, config: {},
+      connectionSource: 'saved', newConnUsername: '', newConnAuthType: 'password',
+      newConnSecret: '',
     };
     this.formError.set(null);
     this.creating.set(true);
@@ -652,7 +757,7 @@ export class TargetsPage implements OnInit {
   protected async remove(t: Target): Promise<void> {
     if (!(await this.confirm.ask({
       title: `Delete ${t.name}?`,
-      message: 'This removes SKM\'s record of the target, along with its assignments and snapshots. Keys already installed on the host are NOT removed — if you meant to withdraw access, remove the assignments and deploy first.',
+      message: 'This removes SKM\'s record of the machine, along with its logins and snapshots. Keys already installed on the host are NOT removed — if you meant to withdraw access, remove the logins first.',
       action: 'Delete',
       danger: true,
     }))) return;
@@ -712,6 +817,18 @@ export class TargetsPage implements OnInit {
     });
   }
 
+  protected pickConnFile(ev: Event): void {
+    const file = (ev.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      this.draft.newConnSecret = String(reader.result ?? '');
+    };
+    reader.onerror = () => this.formError.set(`Could not read ${file.name}.`);
+    reader.readAsText(file);
+  }
+
   protected readonly ansibleUrl = this.api.inventoryUrl('ansible');
   protected readonly nornirUrl = this.api.inventoryUrl('nornir');
   protected readonly inventoryPreview = signal<string | null>(null);
@@ -760,7 +877,7 @@ export class TargetsPage implements OnInit {
   protected async removePrincipal(t: Target, p: Principal): Promise<void> {
     if (!(await this.confirm.ask({
       title: `Stop managing ${p.username} on ${t.name}?`,
-      message: 'Keys already in that account\'s authorized_keys stay where they are.',
+      message: 'Keys already in that login\'s authorized_keys stay where they are.',
       action: 'Remove',
       danger: true,
     }))) return;
@@ -783,13 +900,45 @@ export class TargetsPage implements OnInit {
     this.busy.set(true);
     this.formError.set(null);
 
+    // If creating a new connection, do that first
+    if (this.draft.connectionSource === 'new') {
+      const connName = `${this.draft.name} (${this.draft.newConnUsername})`;
+      const connKind = this.draft.newConnAuthType === 'password' ? 'ssh_password' : 'ssh_key';
+
+      this.api.createCredential({
+        name: connName,
+        kind: connKind,
+        username: this.draft.newConnUsername,
+        secret: this.draft.newConnSecret,
+      }).subscribe({
+        next: (cred) => {
+          this.draftCredentialId = cred.id;
+          this.createTargetAfterConnection();
+        },
+        error: (err: Error) => {
+          this.busy.set(false);
+          this.formError.set(err.message);
+        },
+      });
+    } else {
+      this.createTargetAfterConnection();
+    }
+  }
+
+  private draftCredentialId: string | null = null;
+
+  private createTargetAfterConnection(): void {
+    const credentialId = this.draft.connectionSource === 'new'
+      ? this.draftCredentialId
+      : this.draft.credentialId;
+
     this.api.createTarget({
       name: this.draft.name,
       kind: this.draft.connector,
       connector: this.draft.connector,
       address: this.draft.address,
       port: Number(this.draft.port) || 22,
-      credential_id: this.draft.credentialId ?? undefined,
+      credential_id: credentialId ?? undefined,
       tags: this.draft.tags.split(',').map((t) => t.trim()).filter(Boolean),
       is_canary: this.draft.isCanary,
       config: this.prune(this.draft.config),
@@ -797,12 +946,15 @@ export class TargetsPage implements OnInit {
       next: (t) => {
         this.busy.set(false);
         this.creating.set(false);
-        this.notice.set(`Added ${t.name}. Probe it to pin its host key.`);
+        this.notice.set(`Added ${t.name}. Check it to pin its host key.`);
+        this.draftCredentialId = null;
+        this.loadCredentials();
         this.reload();
       },
       error: (err: Error) => {
         this.busy.set(false);
         this.formError.set(err.message);
+        this.draftCredentialId = null;
       },
     });
   }
@@ -828,6 +980,7 @@ export class TargetsPage implements OnInit {
     this.selected.set(t);
     this.principals.set([]);
     this.snapshots.set([]);
+    this.discoveredKeys.set([]);
 
     this.api.listPrincipals(t.id).subscribe({
       next: (r) => this.principals.set(r.items),
@@ -835,6 +988,10 @@ export class TargetsPage implements OnInit {
     });
     this.api.listSnapshots(t.id).subscribe({
       next: (r) => this.snapshots.set(r.items),
+      error: (err: Error) => this.error.set(err.message),
+    });
+    this.api.listDiscovered({ target_id: t.id }).subscribe({
+      next: (r) => this.discoveredKeys.set(r.items),
       error: (err: Error) => this.error.set(err.message),
     });
   }
@@ -861,7 +1018,7 @@ export class TargetsPage implements OnInit {
 
   protected async rollback(s: Snapshot): Promise<void> {
     if (!(await this.confirm.ask({
-      title: 'Restore this target?',
+      title: 'Restore this machine?',
       message: `Restore to its state at ${new Date(s.taken_at).toLocaleString()}?`,
       action: 'Roll back',
       danger: true,
@@ -900,10 +1057,64 @@ export class TargetsPage implements OnInit {
     }
   }
 
+  protected syncStateLabel(state: string): string {
+    switch (state) {
+      case 'in_sync': return 'in sync';
+      case 'drifted': return 'out of sync';
+      case 'error': return 'error';
+      default: return 'unknown';
+    }
+  }
+
   protected principalName(principalId?: string): string {
     if (!principalId) return '—';
     const principal = this.principals().find((p) => p.id === principalId);
     return principal?.username || principalId.substring(0, 8);
+  }
+
+  protected adoptDiscoveredKey(d: DiscoveredKey): void {
+    this.confirm.prompt({
+      title: 'Adopt this key',
+      label: 'Name',
+      initial: `adopted-${this.short(d.fingerprint_sha256)}`,
+      action: 'Adopt',
+    }).then((name) => {
+      if (name === null) return;
+
+      this.busyId.set(d.id);
+      this.api.adoptKey(d.id, name || undefined).subscribe({
+        next: () => {
+          this.busyId.set(null);
+          this.notice.set('Key adopted.');
+          const t = this.selected();
+          if (t) this.select(t);
+        },
+        error: (err: Error) => {
+          this.busyId.set(null);
+          this.error.set(err.message);
+        },
+      });
+    });
+  }
+
+  protected ignoreDiscoveredKey(d: DiscoveredKey): void {
+    this.busyId.set(d.id);
+    this.api.ignoreDiscovered(d.id).subscribe({
+      next: () => {
+        this.busyId.set(null);
+        this.notice.set('Key ignored.');
+        const t = this.selected();
+        if (t) this.select(t);
+      },
+      error: (err: Error) => {
+        this.busyId.set(null);
+        this.error.set(err.message);
+      },
+    });
+  }
+
+  protected short(fingerprint: string): string {
+    return fingerprint.replace(/^SHA256:/, '').slice(0, 16);
   }
 
 }

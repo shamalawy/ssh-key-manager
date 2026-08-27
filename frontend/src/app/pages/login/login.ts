@@ -93,7 +93,7 @@ export class Login {
     this.auth.login(this.username, this.password, this.totpCode || undefined).subscribe({
       next: () => {
         this.busy.set(false);
-        void this.router.navigate(['/dashboard']);
+        void this.router.navigate(['/overview']);
       },
       error: (err: ApiError) => {
         this.busy.set(false);

@@ -15,7 +15,7 @@ const IN_FLIGHT = new Set([
 ]);
 
 @Component({
-  selector: 'skm-rotations',
+  selector: 'skm-rotation',
   imports: [Alerts, DatePipe, FormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: [`
@@ -45,15 +45,19 @@ const IN_FLIGHT = new Set([
 
     <skm-alerts [error]="error" [notice]="notice" />
 
-    <div class="card" style="margin-bottom: 1.4rem;">
-      <div class="card-header"><h2>Rotate a key</h2></div>
-      <div class="card-body">
-        <p class="small faint">
-          A rotation adds the new key everywhere the old one is used, proves it
-          authenticates on each target, waits out a soak window with both keys
-          live, and only then removes the old one. Nothing is removed from a
-          target that did not verify.
-        </p>
+    <div class="tabs" style="margin-bottom: 1.4rem;">
+      <button [class.on]="tab() === 'rotations'" (click)="tab.set('rotations')">Rotations</button>
+      <button [class.on]="tab() === 'schedules'" (click)="tab.set('schedules')">Schedules</button>
+    </div>
+
+    @if (tab() === 'rotations') {
+      <div class="card" style="margin-bottom: 1.4rem;">
+        <div class="card-header"><h2>Rotate a key</h2></div>
+        <div class="card-body">
+          <p class="small faint">
+            Replace a key everywhere it is installed, safely: the new key goes on
+            first, is proved to work, and only then is the old one removed.
+          </p>
 
         <div class="grid cols-3">
           <label>
@@ -70,7 +74,7 @@ const IN_FLIGHT = new Set([
             <input type="number" min="0" [(ngModel)]="soakHours" />
           </label>
           <label>
-            Canary (% of targets first)
+            Canary (% of machines first)
             <input type="number" min="0" max="100" [(ngModel)]="canaryPercent" />
           </label>
           <label>
@@ -144,7 +148,7 @@ const IN_FLIGHT = new Set([
                   @if (r.state === 'planned') {
                     <button class="sm" type="button" (click)="start(r, $event)"
                             [disabled]="busyId() !== null"
-                            title="Begin adding the new key to every target">
+                            title="Begin adding the new key to every machine">
                       @if (busyId() === r.id) { <span class="spinner"></span> } Start
                     </button>
                   }
@@ -190,7 +194,7 @@ const IN_FLIGHT = new Set([
 
           @if (targets().length) {
             <table>
-              <thead><tr><th>Wave</th><th>Target</th><th>Principal</th><th>State</th><th>Detail</th></tr></thead>
+              <thead><tr><th>Wave</th><th>Machine</th><th>Login</th><th>State</th><th>Detail</th></tr></thead>
               <tbody>
                 @for (t of targets(); track t.target_id + t.principal_id) {
                   <tr>
@@ -207,12 +211,14 @@ const IN_FLIGHT = new Set([
         </div>
       </div>
     }
+    }
 
+    @if (tab() === 'schedules') {
     <div class="card">
-      <div class="card-header"><h2>Scheduled policies</h2></div>
+      <div class="card-header"><h2>Schedules</h2></div>
       <div class="card-body">
         <p class="small faint">
-          A policy rotates every key carrying the given tags once it reaches the
+          A schedule rotates every key carrying the given tags once it reaches the
           maximum age, on the schedule below. Age is checked as well as the
           schedule, so a daily cron does not rotate everything daily.
         </p>
@@ -241,7 +247,7 @@ const IN_FLIGHT = new Set([
         @if (cronError(); as ce) { <div class="notice error">{{ ce }}</div> }
 
         <div class="actions">
-          <button type="button" (click)="createPolicy()" [disabled]="!policyName || busy()">Create policy</button>
+          <button type="button" (click)="createPolicy()" [disabled]="!policyName || busy()">Create schedule</button>
         </div>
 
         @if (policies().length) {
@@ -275,17 +281,19 @@ const IN_FLIGHT = new Set([
             </tbody>
           </table>
         } @else {
-          <div class="empty">No policies. Rotations run on demand until one is created.</div>
+          <div class="empty">No schedules. Rotations run on demand until one is created.</div>
         }
       </div>
     </div>
+    }
   `,
 })
-export class RotationsPage implements OnInit, OnDestroy {
+export class RotationPage implements OnInit, OnDestroy {
   private readonly api = inject(Api);
   protected readonly live = inject(Live);
   private readonly confirm = inject(Confirm);
 
+  protected readonly tab = signal<'rotations' | 'schedules'>('rotations');
   protected readonly rotations = signal<Rotation[]>([]);
   protected readonly policies = signal<RotationPolicy[]>([]);
   protected readonly keys = signal<ManagedKey[]>([]);
@@ -400,8 +408,8 @@ export class RotationsPage implements OnInit, OnDestroy {
         this.planWarnings.set(plan.warnings ?? []);
         this.notice.set(
           this.approvalRequired
-            ? `Planned across ${plan.targets.length} target(s); waiting for approval.`
-            : `Rotating across ${plan.targets.length} target(s).`);
+            ? `Planned across ${plan.targets.length} machine(s); waiting for approval.`
+            : `Rotating across ${plan.targets.length} machine(s).`);
         this.selected.set(plan.rotation);
         this.targets.set(plan.targets);
         this.selectedKeyId = '';
@@ -430,7 +438,7 @@ export class RotationsPage implements OnInit, OnDestroy {
     ev.stopPropagation();
     if (!(await this.confirm.ask({
       title: 'Start this rotation?',
-      message: 'The new key is added alongside the old one on every target and each is tested by logging in with it. Nothing is removed until the new key has proved it works.',
+      message: 'The new key is added alongside the old one on every machine and each is tested by logging in with it. Nothing is removed until the new key has proved it works.',
       action: 'Start',
     }))) {
       return;
@@ -483,7 +491,7 @@ export class RotationsPage implements OnInit, OnDestroy {
     this.api.abortRotation(r.id, reason).subscribe({
       next: () => {
         this.busyId.set(null);
-        this.notice.set('Aborted. Nothing already deployed was removed — both keys remain in place.');
+        this.notice.set('Aborted. Nothing already installed was removed — both keys remain in place.');
         this.refresh();
       },
       error: (err: Error) => {
@@ -521,7 +529,7 @@ export class RotationsPage implements OnInit, OnDestroy {
     }).subscribe({
       next: () => {
         this.busy.set(false);
-        this.notice.set(`Policy "${this.policyName}" created.`);
+        this.notice.set(`Schedule "${this.policyName}" created.`);
         this.policyName = '';
         this.policyCron = '0 3 * * 0';
         this.policyMaxAgeDays = 90;
@@ -543,7 +551,7 @@ export class RotationsPage implements OnInit, OnDestroy {
 
   protected async removePolicy(p: RotationPolicy): Promise<void> {
     if (!(await this.confirm.ask({
-      title: `Delete the policy "${p.name}"?`,
+      title: `Delete the schedule "${p.name}"?`,
       message: 'Rotations it already produced are kept.',
       action: 'Delete',
       danger: true,
@@ -554,7 +562,7 @@ export class RotationsPage implements OnInit, OnDestroy {
     this.api.deletePolicy(p.id).subscribe({
       next: () => {
         this.policyBusyId.set(null);
-        this.notice.set(`Policy "${p.name}" deleted.`);
+        this.notice.set(`Schedule "${p.name}" deleted.`);
         this.refresh();
       },
       error: (err: Error) => {

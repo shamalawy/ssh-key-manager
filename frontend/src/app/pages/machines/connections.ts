@@ -49,7 +49,7 @@ const KINDS: KindInfo[] = [
 ];
 
 @Component({
-  selector: 'skm-credentials',
+  selector: 'skm-connections',
   imports: [FormsModule, DatePipe, Modal, Alerts],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: [`
@@ -71,17 +71,15 @@ const KINDS: KindInfo[] = [
   `],
   template: `
     <div class="card-header">
-      <h1>Credentials</h1>
       @if (auth.can('credential.write')) {
-        <button class="primary" type="button" (click)="openCreate()">Add credential</button>
+        <button class="primary" type="button" (click)="openCreate()">Add connection</button>
       }
     </div>
 
-    <p class="muted" style="margin-top: -0.4rem;">
-      How SKM signs in to your machines so it can manage keys on them. This is
-      not the same as the keys on the Keys page: those are the keys SKM
-      <em>installs</em>; a credential is how SKM <em>gets in</em> to install
-      them. Add a credential here, then choose it on each target.
+    <p class="intro">
+      How SKM signs in to machines. A connection is a username plus a password
+      or private key; pick it when you add a machine. Most people never need
+      this tab — the Add machine form creates one for you.
     </p>
 
     <skm-alerts [error]="error" [notice]="notice" />
@@ -91,9 +89,8 @@ const KINDS: KindInfo[] = [
         <div class="empty"><span class="spinner"></span> Loading…</div>
       } @else if (credentials().length === 0) {
         <div class="empty">
-          No credentials yet. Add one — for an EC2 instance, choose
-          <strong>SSH private key</strong> and paste the <code>.pem</code> AWS
-          gave you.
+          No connections yet. Add one — for an EC2 instance, choose
+          <strong>Private key</strong> and paste the <code>.pem</code> AWS gave you.
         </div>
       } @else {
         <div class="table-wrap">
@@ -125,7 +122,7 @@ const KINDS: KindInfo[] = [
                       <span class="faint">not used yet</span>
                     } @else {
                       <div class="used-by">
-                        @for (t of usedBy(c); track t.id) { <span class="tag">{{ t.name }}</span> }
+                        @for (t of usedBy(c); track t.id) { <span class="tag">{{ t.name }} (machine)</span> }
                       </div>
                     }
                   </td>
@@ -147,13 +144,13 @@ const KINDS: KindInfo[] = [
 
     <!-- Create --------------------------------------------------------- -->
     @if (creating()) {
-      <skm-modal title="Add a credential" [wide]="true" (close)="creating.set(false)">
+      <skm-modal title="Add a connection" [wide]="true" (close)="creating.set(false)">
         @if (formError(); as message) { <div class="notice error">{{ message }}</div> }
 
           <label>
             <span class="label">Name</span>
             <input [(ngModel)]="draft.name" placeholder="aws-ec2-prod" />
-            <span class="hint">Just a label so you can pick it out on a target.</span>
+            <span class="hint">Just a label so you can pick it out on a machine.</span>
           </label>
 
           <span class="label">What kind of sign-in is it?</span>
@@ -251,14 +248,14 @@ const KINDS: KindInfo[] = [
         <div class="row end">
           <button type="button" (click)="creating.set(false)">Cancel</button>
           <button class="primary" type="button" [disabled]="busy() || !valid()" (click)="create()">
-            @if (busy()) { <span class="spinner"></span> } Save credential
+            @if (busy()) { <span class="spinner"></span> } Save connection
           </button>
         </div>
       </skm-modal>
     }
   `,
 })
-export class CredentialsPage implements OnInit {
+export class ConnectionsPage implements OnInit {
   private readonly api = inject(Api);
   private readonly confirm = inject(Confirm);
   protected readonly auth = inject(Auth);
@@ -364,8 +361,7 @@ export class CredentialsPage implements OnInit {
         this.busy.set(false);
         this.creating.set(false);
         this.notice.set(
-          `Saved ${c.name}. Choose it on a target under Targets, then probe to ` +
-          `check SKM can sign in.`);
+          `Saved ${c.name}. Pick it when you add a machine.`);
         this.reload();
       },
       error: (err: Error) => {
@@ -384,7 +380,7 @@ export class CredentialsPage implements OnInit {
   protected async remove(c: Credential): Promise<void> {
     const users = this.usedBy(c);
     const message = users.length
-      ? `It is in use by: ${users.map((t) => t.name).join(', ')}. SKM will refuse until those targets point somewhere else.`
+      ? `It is in use by: ${users.map((t) => t.name).join(', ')}. SKM will refuse until those machines point somewhere else.`
       : `The stored secret is destroyed. If you need it again you will have to paste it in afresh.`;
 
     if (!(await this.confirm.ask({ title: `Delete ${c.name}?`, message, action: 'Delete', danger: true }))) {

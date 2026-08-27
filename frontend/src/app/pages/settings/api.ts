@@ -63,8 +63,9 @@ interface Endpoint {
     .spacer { flex: 1; }
   `],
   template: `
-    <div class="card-header">
-      <h1>API reference</h1>
+    <p class="muted" style="margin-bottom: 1.2rem;">Interactive API reference, auto-generated from the server.</p>
+
+    <div class="row" style="align-items: center; margin-bottom: 1.2rem;">
       <a class="ghost sm" href="/api/v1/openapi.json" target="_blank" rel="noopener">openapi.json</a>
     </div>
 
