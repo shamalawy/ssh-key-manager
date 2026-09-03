@@ -38,7 +38,7 @@ jobs:
             org.opencontainers.image.title=SKM
             org.opencontainers.image.description=Full-custody SSH key lifecycle: generate, distribute, verify, rotate, roll back
 
-      - uses: docker/build-push-action@v6
+      - uses: docker/build-push-action@v7
         with:
           context: .
           file: deploy/Dockerfile
